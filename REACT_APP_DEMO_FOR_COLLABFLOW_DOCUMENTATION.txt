@@ -1,0 +1,776 @@
+================================================================================
+                    COLLABFLOW - COMPREHENSIVE DOCUMENTATION
+                         Complete Application Guide
+================================================================================
+
+TABLE OF CONTENTS:
+1. Project Overview
+2. Application Architecture
+3. Directory Structure
+4. Component Tree & Hierarchy
+5. Theme System & Color Specifications
+6. Page Structure & Navigation
+7. Component Specifications
+8. Feature Descriptions
+9. User Interface Guidelines
+10. Technical Implementation Details
+
+================================================================================
+1. PROJECT OVERVIEW
+================================================================================
+
+PROJECT NAME: CollabFlow
+DESCRIPTION: CollabFlow is a sophisticated project management platform that
+combines AI-powered task generation with human collaboration and human-in-the-loop
+(HITL) workflows. The application follows a "Notion meets Claude" aesthetic,
+emphasizing clean design, generous whitespace, and intelligent color usage to
+distinguish between different task types and workflow states.
+
+CORE PHILOSOPHY:
+- AI-Powered Efficiency: Leverage AI to generate and organize tasks
+- Human Collaboration: Enable seamless team collaboration and communication
+- Human-in-the-Loop: Maintain human oversight and decision-making in critical processes
+- Elegant Design: Provide a sophisticated, intuitive user interface
+- Theme Support: Full light and dark mode support with persistent user preferences
+
+TARGET USERS:
+- Project managers and team leads
+- Product teams using AI-assisted workflows
+- Organizations requiring human oversight in automated processes
+- Teams seeking a modern alternative to traditional project management tools
+
+================================================================================
+2. APPLICATION ARCHITECTURE
+================================================================================
+
+TECHNOLOGY STACK:
+- Framework: Next.js 15+ (App Router)
+- UI Library: React 18+
+- Styling: Tailwind CSS v4
+- Component Library: shadcn/ui
+- Icons: Lucide React
+- State Management: React Hooks (useState, useContext)
+- Theme Management: Custom ThemeProvider Context
+- Font System: Tahoma (headings), Montserrat (body text)
+
+ARCHITECTURAL PATTERNS:
+- Server Components: Used for layout and data fetching
+- Client Components: Used for interactive features and state management
+- Context API: Used for theme management and global state
+- Component Composition: Modular, reusable components
+- Layout Wrapper Pattern: Consistent layout across all pages
+
+KEY ARCHITECTURAL DECISIONS:
+1. LayoutWrapper Component: Provides consistent sidebar, header, and main content
+   layout across all pages, ensuring uniform navigation and spacing.
+
+2. ThemeProvider Context: Manages light/dark theme state, persists to localStorage,
+   and applies theme to document root for CSS variable switching.
+
+3. CSS Variables: All colors and spacing use CSS variables defined in globals.css,
+   enabling seamless theme switching without component re-renders.
+
+4. Modular Components: Each feature (dashboard, projects, tasks, schedule) has
+   dedicated component folders with specialized sub-components.
+
+================================================================================
+3. DIRECTORY STRUCTURE
+================================================================================
+
+collabflow/
+├── app/
+│   ├── layout.tsx                 # Root layout with ThemeProvider
+│   ├── globals.css                # Global styles and CSS variables
+│   ├── page.tsx                   # Dashboard page
+│   ├── profile/
+│   │   └── page.tsx               # User profile page
+│   ├── settings/
+│   │   └── page.tsx               # User settings page
+│   ├── help/
+│   │   ├── page.tsx               # Help/FAQ page
+│   │   └── loading.tsx            # Loading state for help page
+│   ├── projects/
+│   │   ├── page.tsx               # Projects list page
+│   │   ├── new/
+│   │   │   └── page.tsx           # Create project wizard
+│   │   └── [id]/
+│   │       └── page.tsx           # Project detail page
+│   ├── tasks/
+│   │   └── page.tsx               # All tasks page
+│   └── schedule/
+│       └── page.tsx               # Schedule/calendar page
+│
+├── components/
+│   ├── layout-wrapper.tsx         # Main layout wrapper (sidebar + header + content)
+│   ├── sidebar.tsx                # Navigation sidebar
+│   ├── header.tsx                 # Top header with search, theme toggle, notifications
+│   ├── cf-logo.tsx                # CollabFlow logo component
+│   ├── theme-provider.tsx         # Theme context provider
+│   ├── notification-panel.tsx     # Full-screen notification panel overlay
+│   │
+│   ├── dashboard/
+│   │   ├── stats-cards.tsx        # Dashboard statistics cards
+│   │   └── recent-projects.tsx    # Recent projects section
+│   │
+│   ├── projects/
+│   │   ├── projects-toolbar.tsx   # Toolbar with search, filters, view toggle
+│   │   └── projects-grid.tsx      # Grid display of projects
+│   │
+│   ├── project-card.tsx           # Individual project card component
+│   ├── empty-state.tsx            # Empty state display
+│   │
+│   ├── create-project/
+│   │   ├── create-project-wizard.tsx    # Multi-step wizard container
+│   │   ├── step-indicator.tsx           # Step progress indicator
+│   │   └── steps/
+│   │       ├── project-details-step.tsx # Step 1: Project details
+│   │       ├── goals-kpis-step.tsx      # Step 2: Goals and KPIs
+│   │       ├── generate-tasks-step.tsx  # Step 3: AI task generation
+│   │       └── review-step.tsx          # Step 4: Review and confirm
+│   │
+│   ├── project-detail/
+│   │   ├── project-header.tsx     # Project header with title and status
+│   │   ├── project-tabs.tsx       # Tab navigation (Tasks, Workflow, Analytics, etc.)
+│   │   ├── task-list.tsx          # Task list with filtering and management
+│   │   ├── project-workflow.tsx   # Interactive flowchart/workflow visualization
+│   │   ├── project-analytics.tsx  # Analytics and charts
+│   │   ├── activity-feed.tsx      # Activity timeline
+│   │   └── project-settings.tsx   # Project settings
+│   │
+│   ├── tasks/
+│   │   ├── tasks-toolbar.tsx      # Toolbar for tasks page
+│   │   └── all-tasks-list.tsx     # List of all tasks across projects
+│   │
+│   ├── schedule/
+│   │   ├── schedule-toolbar.tsx   # Toolbar with view options
+│   │   ├── calendar-view.tsx      # Monthly calendar view
+│   │   ├── timeline-view.tsx      # Gantt chart timeline view
+│   │   └── upcoming-tasks.tsx     # Upcoming tasks sidebar
+│   │
+│   └── ui/
+│       ├── button.tsx             # Button component
+│       ├── input.tsx              # Input field component
+│       ├── card.tsx               # Card component
+│       ├── chart.tsx              # Chart components (Recharts)
+│       └── [other shadcn components]
+│
+├── hooks/
+│   └── use-mobile.tsx             # Mobile detection hook
+│
+├── lib/
+│   └── utils.ts                   # Utility functions (cn for class merging)
+│
+└── public/
+    └── [static assets]
+
+================================================================================
+4. COMPONENT TREE & HIERARCHY
+================================================================================
+
+APPLICATION COMPONENT HIERARCHY:
+
+RootLayout (app/layout.tsx)
+├── ThemeProvider (components/theme-provider.tsx)
+│   └── html/body
+│       ├── Sidebar (components/sidebar.tsx)
+│       ├── Header (components/header.tsx)
+│       │   ├── Logo (components/cf-logo.tsx)
+│       │   ├── Search Bar
+│       │   ├── Notification Dropdown
+│       │   │   └── NotificationPanel (components/notification-panel.tsx)
+│       │   ├── Theme Toggle
+│       │   └── User Menu
+│       │
+│       └── LayoutWrapper (components/layout-wrapper.tsx)
+│           └── Page Content
+│
+DASHBOARD PAGE (app/page.tsx)
+├── LayoutWrapper
+│   ├── StatsCards (components/dashboard/stats-cards.tsx)
+│   │   ├── StatCard (AI Projects)
+│   │   ├── StatCard (Active Tasks)
+│   │   ├── StatCard (Completed Tasks)
+│   │   └── StatCard (Team Members)
+│   │
+│   └── RecentProjects (components/dashboard/recent-projects.tsx)
+│       └── ProjectCard[] (components/project-card.tsx)
+│           ├── Project Title
+│           ├── Progress Bar
+│           ├── Status Badge
+│           ├── Collaborator Avatars
+│           └── Action Buttons
+│
+PROJECTS PAGE (app/projects/page.tsx)
+├── LayoutWrapper
+│   ├── ProjectsToolbar (components/projects/projects-toolbar.tsx)
+│   │   ├── Search Input
+│   │   ├── Filter Dropdowns (Status, Domain)
+│   │   ├── Active Filter Badges
+│   │   ├── View Toggle (Grid/List)
+│   │   └── New Project Button
+│   │
+│   └── ProjectsGrid (components/projects/projects-grid.tsx)
+│       └── ProjectCard[]
+│
+CREATE PROJECT WIZARD (app/projects/new/page.tsx)
+├── LayoutWrapper
+│   └── CreateProjectWizard (components/create-project/create-project-wizard.tsx)
+│       ├── StepIndicator (components/create-project/step-indicator.tsx)
+│       │   ├── Step 1: Project Details
+│       │   ├── Step 2: Goals & KPIs
+│       │   ├── Step 3: Generate Tasks
+│       │   └── Step 4: Review
+│       │
+│       ├── ProjectDetailsStep (components/create-project/steps/project-details-step.tsx)
+│       │   ├── Project Name Input
+│       │   ├── Description Textarea
+│       │   ├── Domain Selector
+│       │   └── Timeline Input
+│       │
+│       ├── GoalsKPIsStep (components/create-project/steps/goals-kpis-step.tsx)
+│       │   ├── Goals Input
+│       │   ├── KPIs Input
+│       │   └── Success Criteria
+│       │
+│       ├── GenerateTasksStep (components/create-project/steps/generate-tasks-step.tsx)
+│       │   ├── AI Generation Loading State
+│       │   ├── Task Preview
+│       │   └── Regenerate Button
+│       │
+│       └── ReviewStep (components/create-project/steps/review-step.tsx)
+│           ├── Project Summary
+│           ├── Task Breakdown (AI/Human/HITL)
+│           └── Create Project Button
+│
+PROJECT DETAIL PAGE (app/projects/[id]/page.tsx)
+├── LayoutWrapper
+│   ├── ProjectHeader (components/project-detail/project-header.tsx)
+│   │   ├── Project Title
+│   │   ├── Status Badge
+│   │   ├── Progress Bar
+│   │   └── Action Buttons
+│   │
+│   └── ProjectTabs (components/project-detail/project-tabs.tsx)
+│       ├── Tasks Tab
+│       │   └── TaskList (components/project-detail/task-list.tsx)
+│       │       ├── Filter Controls
+│       │       ├── Task Items
+│       │       │   ├── Checkbox
+│       │       │   ├── Task Title
+│       │       │   ├── Type Badge (AI/Human/HITL)
+│       │       │   ├── Status Badge
+│       │       │   └── Assignee Avatar
+│       │       └── Add Task Button
+│       │
+│       ├── Workflow Tab
+│       │   └── ProjectWorkflow (components/project-detail/project-workflow.tsx)
+│       │       ├── Canvas Area
+│       │       ├── Task Nodes (draggable)
+│       │       ├── Connection Lines (curved arrows)
+│       │       ├── Layout Controls (Horizontal/Vertical/Freehand)
+│       │       └── Zoom/Pan Controls
+│       │
+│       ├── Analytics Tab
+│       │   └── ProjectAnalytics (components/project-detail/project-analytics.tsx)
+│       │       ├── Task Distribution Chart
+│       │       ├── Completion Rate Chart
+│       │       ├── Timeline Chart
+│       │       └── Key Metrics
+│       │
+│       ├── Activity Tab
+│       │   └── ActivityFeed (components/project-detail/activity-feed.tsx)
+│       │       └── Activity Items (timeline)
+│       │
+│       └── Settings Tab
+│           └── ProjectSettings (components/project-detail/project-settings.tsx)
+│               ├── Project Settings
+│               └── Danger Zone
+│
+TASKS PAGE (app/tasks/page.tsx)
+├── LayoutWrapper
+│   ├── TasksToolbar (components/tasks/tasks-toolbar.tsx)
+│   │   ├── Search Input
+│   │   ├── Filter Controls
+│   │   ├── View Toggle
+│   │   └── Sort Options
+│   │
+│   └── AllTasksList (components/tasks/all-tasks-list.tsx)
+│       └── Task Items (across all projects)
+│
+SCHEDULE PAGE (app/schedule/page.tsx)
+├── LayoutWrapper
+│   ├── ScheduleToolbar (components/schedule/schedule-toolbar.tsx)
+│   │   ├── Date Navigation
+│   │   ├── View Toggle (Month/Week/Day/Timeline/List)
+│   │   └── Filter Controls
+│   │
+│   ├── CalendarView (components/schedule/calendar-view.tsx)
+│   │   └── Calendar Grid with Task Indicators
+│   │
+│   ├── TimelineView (components/schedule/timeline-view.tsx)
+│   │   └── Gantt Chart with Project Bars
+│   │
+│   └── UpcomingTasks (components/schedule/upcoming-tasks.tsx)
+│       └── Task List Sidebar
+│
+PROFILE PAGE (app/profile/page.tsx)
+├── LayoutWrapper
+│   ├── Profile Header
+│   ├── Avatar Section
+│   ├── Profile Fields
+│   │   ├── Full Name
+│   │   ├── Email
+│   │   ├── Phone
+│   │   ├── Location
+│   │   ├── Bio
+│   │   └── Member Since
+│   └── Edit/Save Controls
+│
+SETTINGS PAGE (app/settings/page.tsx)
+├── LayoutWrapper
+│   ├── Notifications Section
+│   │   ├── Email Notifications Toggle
+│   │   ├── Push Notifications Toggle
+│   │   └── Weekly Digest Toggle
+│   │
+│   ├── Security Section
+│   │   └── Two-Factor Authentication Toggle
+│   │
+│   ├── Privacy Section
+│   │   └── Analytics & Data Collection Toggle
+│   │
+│   └── Danger Zone
+│       └── Log Out Button
+│
+HELP PAGE (app/help/page.tsx)
+├── LayoutWrapper
+│   ├── Help Header
+│   ├── Search Bar
+│   ├── FAQ Categories
+│   │   ├── Getting Started
+│   │   ├── Projects & Tasks
+│   │   ├── AI Features
+│   │   ├── Collaboration
+│   │   └── Troubleshooting
+│   │
+│   └── FAQ Items
+│       ├── Question
+│       └── Answer
+
+================================================================================
+5. THEME SYSTEM & COLOR SPECIFICATIONS
+================================================================================
+
+THEME ARCHITECTURE:
+The CollabFlow application uses a comprehensive CSS variable-based theme system
+that supports both light and dark modes. All colors, spacing, and design tokens
+are defined as CSS variables in globals.css, enabling seamless theme switching
+without component re-renders.
+
+THEME PROVIDER (components/theme-provider.tsx):
+- Manages theme state (light/dark)
+- Persists theme preference to localStorage
+- Applies theme class to document root
+- Provides useTheme hook for components
+- Prevents flash of unstyled content (FOUC)
+
+BRAND COLORS (Primary Palette):
+These are the core brand colors used throughout the application:
+
+1. BITTERSWEET (#E74C3C)
+   - Usage: Urgent items, errors, warnings, danger actions
+   - Light Mode: #E74C3C (vibrant red-orange)
+   - Dark Mode: #E74C3C (maintains vibrancy)
+   - Semantic: --bittersweet
+   - Examples: Error badges, delete buttons, urgent notifications
+
+2. EGGPLANT (#4A235A)
+   - Usage: Primary brand color, dark accents, premium feel
+   - Light Mode: #4A235A (deep purple)
+   - Dark Mode: #6B3A7D (lighter purple for visibility)
+   - Semantic: --eggplant
+   - Examples: Sidebar background, primary buttons, brand elements
+
+3. GLAUCOUS (#5B8DEE)
+   - Usage: AI-related items, primary actions, interactive elements
+   - Light Mode: #5B8DEE (bright blue)
+   - Dark Mode: #7BA3F5 (lighter blue for contrast)
+   - Semantic: --glaucous, --color-ai
+   - Examples: AI task badges, primary buttons, links, focus states
+
+4. TEA GREEN (#2D5A3D)
+   - Usage: Human tasks, completed items, success states
+   - Light Mode: #2D5A3D (dark green for contrast)
+   - Dark Mode: #7FB069 (lighter green for visibility)
+   - Semantic: --tea-green, --color-human, --color-success
+   - Examples: Human task badges, completed checkmarks, success messages
+
+5. ORANGE PEEL (#FF9500)
+   - Usage: Human-in-the-loop (HITL) items, pending actions, warnings
+   - Light Mode: #FF9500 (vibrant orange)
+   - Dark Mode: #FFB84D (lighter orange for contrast)
+   - Semantic: --orange-peel, --color-hitl
+   - Examples: HITL task badges, pending items, attention-needed indicators
+
+NEUTRAL COLORS (Background & Text Palette):
+These colors form the foundation of the light and dark themes:
+
+LIGHT MODE NEUTRALS:
+- --background-50: #FFFFFF (pure white, main background)
+- --background-100: #F8F9FA (very light gray, secondary background)
+- --background-200: #F0F2F5 (light gray, tertiary background)
+- --background-300: #E8EAED (light gray, borders and dividers)
+- --text-900: #1A1A1A (near black, primary text)
+- --text-800: #333333 (dark gray, secondary text)
+- --text-700: #555555 (medium gray, tertiary text)
+- --text-600: #777777 (light gray, disabled/muted text)
+
+DARK MODE NEUTRALS:
+- --background-50: #0F0F0F (near black, main background)
+- --background-100: #1A1A1A (dark gray, secondary background)
+- --background-200: #2D2D2D (medium dark gray, tertiary background)
+- --background-300: #404040 (dark gray, borders and dividers)
+- --text-900: #FFFFFF (white, primary text)
+- --text-800: #E8E8E8 (light gray, secondary text)
+- --text-700: #CCCCCC (medium gray, tertiary text)
+- --text-600: #999999 (light gray, disabled/muted text)
+
+SEMANTIC COLOR MAPPINGS:
+- --color-ai: Glaucous (#5B8DEE / #7BA3F5)
+  Purpose: Identifies AI-generated or AI-assisted tasks
+  Usage: Task type badges, AI feature indicators, automation markers
+
+- --color-human: Tea Green (#2D5A3D / #7FB069)
+  Purpose: Identifies human-created or human-assigned tasks
+  Usage: Task type badges, human responsibility indicators
+
+- --color-hitl: Orange Peel (#FF9500 / #FFB84D)
+  Purpose: Identifies human-in-the-loop checkpoints
+  Usage: Task type badges, approval required indicators, pending actions
+
+- --color-success: Tea Green (#2D5A3D / #7FB069)
+  Purpose: Indicates successful completion or positive states
+  Usage: Completed task checkmarks, success messages, positive feedback
+
+- --color-warning: Bittersweet (#E74C3C)
+  Purpose: Indicates warnings or items needing attention
+  Usage: Warning badges, alert messages, urgent items
+
+THEME SWITCHING MECHANISM:
+1. User clicks theme toggle in header
+2. ThemeProvider updates state and localStorage
+3. Document root class changes from "" to "dark"
+4. CSS variables automatically switch via media queries and class selectors
+5. All components using CSS variables update instantly
+6. No component re-renders needed (pure CSS update)
+
+EXAMPLE CSS VARIABLE USAGE:
+```css
+/* Light mode (default) */
+:root {
+  --background-50: #FFFFFF;
+  --text-900: #1A1A1A;
+  --glaucous: #5B8DEE;
+}
+
+/* Dark mode */
+.dark {
+  --background-50: #0F0F0F;
+  --text-900: #FFFFFF;
+  --glaucous: #7BA3F5;
+}
+
+================================================================================
+11. API & ROUTE HANDLERS
+================================================================================
+
+ROUTE STRUCTURE:
+
+1. PAGE ROUTES (Server-Side Rendered)
+   GET / - Dashboard page
+   GET /projects - Projects list page
+   GET /projects/new - Create project wizard
+   GET /projects/[id] - Project detail page
+   GET /tasks - All tasks page
+   GET /schedule - Schedule/calendar page
+   GET /profile - User profile page
+   GET /settings - User settings page
+   GET /help - Help/FAQ page
+
+2. API ROUTES (Future Implementation)
+   POST /api/projects - Create new project
+   GET /api/projects - Fetch all projects
+   GET /api/projects/[id] - Fetch project details
+   PUT /api/projects/[id] - Update project
+   DELETE /api/projects/[id] - Delete project
+
+   POST /api/tasks - Create new task
+   GET /api/tasks - Fetch all tasks
+   GET /api/tasks/[id] - Fetch task details
+   PUT /api/tasks/[id] - Update task
+   DELETE /api/tasks/[id] - Delete task
+   PATCH /api/tasks/[id]/complete - Mark task complete
+
+   POST /api/notifications - Create notification
+   GET /api/notifications - Fetch user notifications
+   PATCH /api/notifications/[id]/read - Mark notification as read
+   DELETE /api/notifications/[id] - Delete notification
+
+   GET /api/user/profile - Fetch user profile
+   PUT /api/user/profile - Update user profile
+   PUT /api/user/settings - Update user settings
+
+   POST /api/auth/login - User login
+   POST /api/auth/logout - User logout
+   POST /api/auth/signup - User registration
+
+MOCK DATA ENDPOINTS:
+
+Currently, the application uses mock data stored in component state. In production,
+these would be replaced with actual API calls to a backend server.
+
+Mock Data Sources:
+- Projects: Hardcoded array in components
+- Tasks: Hardcoded array in components
+- Notifications: Hardcoded array in header component
+- Users: Hardcoded array in components
+- Activities: Hardcoded array in components
+
+================================================================================
+12. DATABASE SCHEMA (Future Implementation)
+================================================================================
+
+RELATIONAL DATABASE STRUCTURE:
+
+1. USERS TABLE
+   Columns:
+   - id (UUID, primary key)
+   - email (VARCHAR, unique)
+   - password_hash (VARCHAR)
+   - name (VARCHAR)
+   - phone (VARCHAR, nullable)
+   - location (VARCHAR, nullable)
+   - bio (TEXT, nullable)
+   - avatar_url (VARCHAR, nullable)
+   - theme_preference (ENUM: 'light', 'dark', 'auto')
+   - two_factor_enabled (BOOLEAN)
+   - data_collection_enabled (BOOLEAN)
+   - created_at (TIMESTAMP)
+   - updated_at (TIMESTAMP)
+   - deleted_at (TIMESTAMP, nullable, soft delete)
+
+2. PROJECTS TABLE
+   Columns:
+   - id (UUID, primary key)
+   - name (VARCHAR)
+   - description (TEXT)
+   - domain (ENUM: 'Product', 'Marketing', 'Engineering', 'Design')
+   - status (ENUM: 'Active', 'Completed', 'On Hold')
+   - progress (INTEGER, 0-100)
+   - start_date (DATE)
+   - end_date (DATE)
+   - goals (TEXT)
+   - kpis (TEXT)
+   - owner_id (UUID, foreign key to users)
+   - created_at (TIMESTAMP)
+   - updated_at (TIMESTAMP)
+   - deleted_at (TIMESTAMP, nullable, soft delete)
+
+3. TASKS TABLE
+   Columns:
+   - id (UUID, primary key)
+   - title (VARCHAR)
+   - description (TEXT)
+   - type (ENUM: 'AI', 'Human', 'HITL')
+   - status (ENUM: 'Pending', 'In Progress', 'Completed')
+   - project_id (UUID, foreign key to projects)
+   - assignee_id (UUID, foreign key to users, nullable)
+   - due_date (DATE, nullable)
+   - priority (ENUM: 'Low', 'Medium', 'High')
+   - created_at (TIMESTAMP)
+   - updated_at (TIMESTAMP)
+   - deleted_at (TIMESTAMP, nullable, soft delete)
+
+4. TASK_DEPENDENCIES TABLE
+   Columns:
+   - id (UUID, primary key)
+   - task_id (UUID, foreign key to tasks)
+   - depends_on_task_id (UUID, foreign key to tasks)
+   - created_at (TIMESTAMP)
+
+5. PROJECT_COLLABORATORS TABLE
+   Columns:
+   - id (UUID, primary key)
+   - project_id (UUID, foreign key to projects)
+   - user_id (UUID, foreign key to users)
+   - role (ENUM: 'Owner', 'Editor', 'Viewer')
+   - joined_at (TIMESTAMP)
+
+6. NOTIFICATIONS TABLE
+   Columns:
+   - id (UUID, primary key)
+   - type (ENUM: 'ProjectUpdate', 'TaskAssignment', 'Completion', 'Comment')
+   - title (VARCHAR)
+   - message (TEXT)
+   - read (BOOLEAN)
+   - user_id (UUID, foreign key to users)
+   - related_project_id (UUID, foreign key to projects, nullable)
+   - related_task_id (UUID, foreign key to tasks, nullable)
+   - created_at (TIMESTAMP)
+   - deleted_at (TIMESTAMP, nullable, soft delete)
+
+7. ACTIVITIES TABLE
+   Columns:
+   - id (UUID, primary key)
+   - type (ENUM: 'TaskCreated', 'TaskCompleted', 'ProjectCreated', 'CommentAdded')
+   - user_id (UUID, foreign key to users)
+   - project_id (UUID, foreign key to projects, nullable)
+   - task_id (UUID, foreign key to tasks, nullable)
+   - description (TEXT)
+   - created_at (TIMESTAMP)
+
+INDEXES:
+- users.email (unique)
+- projects.owner_id
+- projects.status
+- tasks.project_id
+- tasks.assignee_id
+- tasks.status
+- notifications.user_id
+- notifications.read
+- activities.project_id
+- activities.created_at
+
+================================================================================
+19. TROUBLESHOOTING GUIDE
+================================================================================
+
+COMMON ISSUES & SOLUTIONS:
+
+1. THEME NOT PERSISTING
+   Problem: Theme preference not saved after refresh
+   Solution:
+   - Check localStorage is enabled in browser
+   - Clear browser cache and cookies
+   - Check ThemeProvider is wrapping entire app
+   - Verify CSS variables are defined in globals.css
+
+2. NOTIFICATIONS NOT APPEARING
+   Problem: Notifications dropdown is empty
+   Solution:
+   - Check notification data in mock data
+   - Verify NotificationPanel component is imported
+   - Check browser console for errors
+   - Verify notification bell icon is visible
+
+3. LAYOUT ISSUES
+   Problem: Sidebar or header not displaying correctly
+   Solution:
+   - Check LayoutWrapper is used on page
+   - Verify CSS variables are applied
+   - Check responsive breakpoints
+   - Clear browser cache
+
+4. FORM SUBMISSION ERRORS
+   Problem: Form not submitting or showing errors
+   Solution:
+   - Check form validation logic
+   - Verify input fields have proper names
+   - Check console for JavaScript errors
+   - Verify form handler is attached
+
+5. PERFORMANCE ISSUES
+   Problem: App is slow or laggy
+   Solution:
+   - Check browser DevTools Performance tab
+   - Verify no infinite loops in useEffect
+   - Check for unnecessary re-renders
+   - Optimize images and assets
+   - Check network requests
+
+DEBUGGING TIPS:
+
+1. BROWSER DEVTOOLS
+   - Use Elements tab to inspect HTML
+   - Use Console tab to check for errors
+   - Use Network tab to monitor API calls
+   - Use Performance tab to profile performance
+
+2. REACT DEVTOOLS
+   - Inspect component props and state
+   - Track component re-renders
+   - Profile component performance
+   - Check component hierarchy
+
+3. CONSOLE LOGGING
+   - Use console.log("[v0] ...") for debugging
+   - Log component lifecycle events
+   - Log state changes
+   - Log API responses
+
+================================================================================
+20. GLOSSARY & TERMINOLOGY
+================================================================================
+
+TERMS & DEFINITIONS:
+
+1. AI TASK
+   A task that is primarily handled by artificial intelligence. These tasks
+   are generated by the AI system and may require human review or approval.
+
+2. HUMAN TASK
+   A task that requires human effort and decision-making. These tasks are
+   assigned to team members and tracked for completion.
+
+3. HITL (Human-In-The-Loop)
+   A task that combines AI assistance with human oversight. The AI provides
+   suggestions or partial solutions, and humans make final decisions.
+
+4. PROJECT
+   A collection of related tasks with a common goal. Projects have a status,
+   timeline, and team of collaborators.
+
+5. WORKFLOW
+   The sequence of tasks and their dependencies in a project. Visualized as
+   a flowchart showing task relationships.
+
+6. NOTIFICATION
+   An alert sent to a user about project or task updates. Can be marked as
+   read or deleted.
+
+7. ACTIVITY
+   A record of an action taken in the system. Activities are logged for
+   audit and tracking purposes.
+
+8. COLLABORATOR
+   A team member who has access to a project. Can have different roles
+   (Owner, Editor, Viewer).
+
+9. THEME
+   The visual appearance of the application. CollabFlow supports light and
+   dark themes with persistent user preferences.
+
+10. COMPONENT
+    A reusable UI element that encapsulates structure, style, and behavior.
+    Components are the building blocks of the application.
+
+11. HOOK
+    A React function that lets you use state and other React features in
+    functional components. Examples: useState, useEffect, useContext.
+
+12. CONTEXT
+    A React API for passing data through the component tree without prop
+    drilling. Used for theme and global state management.
+
+13. MOCK DATA
+    Fake data used for development and testing. Replaces real API calls
+    during development.
+
+14. RESPONSIVE DESIGN
+    Design that adapts to different screen sizes and devices. CollabFlow
+    is fully responsive.
+
+15. ACCESSIBILITY
+    The practice of making applications usable by everyone, including people
+    with disabilities. CollabFlow meets WCAG 2.1 AA standards.
+

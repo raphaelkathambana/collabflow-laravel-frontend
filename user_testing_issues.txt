@@ -1,0 +1,6 @@
+- Edit Button should be in project setting panel, not at the top
+- HILT Checkpoints is vague and not immediately understood... should change it to something user friendly
+- optional and advanced features should be hidden so that users don't get overwhelmed
+- Workflow Validation should be more clear, with the tasks that are in error more emphasized so that the issue can be resolved
+- Current Flowchart generated is vague on task dependencies due to all tasks being connected to start and end. User does not understand what task they can start with or what tasks depend on what, leaving it vague
+- Navbar for the default page is blocking page elements

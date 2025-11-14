@@ -1,0 +1,313 @@
+/* CollabFlow Task Animations - HITL UI Design */
+
+/* ===================================
+   CHECKPOINT ANIMATIONS
+   =================================== */
+
+/* Checkpoint Throb - Yellow pulsing animation for checkpoint tasks */
+@keyframes checkpoint-throb {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 4px 6px rgba(255, 217, 61, 0.3);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 6px 12px rgba(255, 217, 61, 0.6);
+    }
+}
+
+.task-card--checkpoint {
+    animation: checkpoint-throb 1.5s ease-in-out infinite;
+}
+
+.node-checkpoint {
+    animation: checkpoint-throb 1.5s ease-in-out infinite;
+}
+
+/* Checkpoint Badge Pulse */
+@keyframes badge-pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+.task-badge--checkpoint {
+    animation: badge-pulse 1.5s ease-in-out infinite;
+}
+
+/* Checkpoint Icon Bounce */
+@keyframes icon-bounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-3px);
+    }
+}
+
+.task-icon--checkpoint {
+    animation: icon-bounce 1.5s ease-in-out infinite;
+}
+
+/* Checkpoint Pulse Badge (red indicator) */
+@keyframes checkpoint-pulse-badge {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.2);
+    }
+}
+
+.checkpoint-indicator {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 24px;
+    height: 24px;
+    background: #EF4444;
+    border-radius: 50%;
+    border: 3px solid white;
+    animation: checkpoint-pulse-badge 1.5s ease-in-out infinite;
+    z-index: 10;
+}
+
+/* ===================================
+   HITL COLLABORATION ANIMATIONS
+   =================================== */
+
+/* Collaboration Glow - Orange glow for HITL tasks */
+@keyframes collaboration-glow {
+    0%, 100% {
+        opacity: 0.3;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.6;
+        transform: scale(1.02);
+    }
+}
+
+.task-card--hitl::after {
+    content: "";
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    bottom: -3px;
+    left: -3px;
+    border: 3px solid rgba(253, 160, 55, 0.3);
+    border-radius: 12px;
+    animation: collaboration-glow 2s ease-in-out infinite;
+    pointer-events: none;
+}
+
+.node-hitl::after {
+    content: "";
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    bottom: -3px;
+    left: -3px;
+    border: 3px solid rgba(253, 160, 55, 0.3);
+    border-radius: 8px;
+    animation: collaboration-glow 2s ease-in-out infinite;
+    pointer-events: none;
+}
+
+/* ===================================
+   CHECKPOINT EDGE ANIMATIONS
+   =================================== */
+
+/* Dash Flow - Animated dashed edges for checkpoint connections */
+@keyframes dash-flow {
+    to {
+        stroke-dashoffset: -10;
+    }
+}
+
+.workflow-edge--checkpoint {
+    stroke: #FFD93D;
+    stroke-width: 3px;
+    stroke-dasharray: 5, 5;
+    animation: dash-flow 1s linear infinite;
+}
+
+/* ===================================
+   TASK TYPE STYLES
+   =================================== */
+
+/* Note: Task card background colors are handled inline in Blade template
+   These classes only add the animation effects, not the base styling */
+
+/* Checkpoint Task Card - Animation only */
+.task-card--checkpoint {
+    position: relative;
+}
+
+/* HITL Task Card - Animation only */
+.task-card--hitl {
+    position: relative;
+}
+
+/* AI Task Card - Animation only */
+.task-card--ai {
+    position: relative;
+}
+
+/* Human Task Card - Animation only */
+.task-card--human {
+    position: relative;
+}
+
+/* ===================================
+   CHECKPOINT TYPE BADGES
+   =================================== */
+
+.checkpoint-type-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.75rem;
+    background: rgba(45, 55, 72, 0.1);
+    color: #2D3748;
+    font-weight: 700;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    border-radius: 9999px;
+    animation: badge-pulse 1.5s ease-in-out infinite;
+}
+
+.checkpoint-type-badge--review::before {
+    content: "🔍";
+    font-size: 1rem;
+}
+
+.checkpoint-type-badge--approval::before {
+    content: "✓";
+    font-size: 1rem;
+}
+
+.checkpoint-type-badge--validation::before {
+    content: "✔";
+    font-size: 1rem;
+}
+
+.checkpoint-type-badge--security_audit::before {
+    content: "🔒";
+    font-size: 1rem;
+}
+
+.checkpoint-type-badge--expert_review::before {
+    content: "👨‍💼";
+    font-size: 1rem;
+}
+
+/* ===================================
+   SUBTASK WORKFLOW STYLES
+   =================================== */
+
+/* Subtask item with connector line */
+.subtask-item {
+    position: relative;
+    padding: 1rem;
+    border-left: 3px solid #E5E7EB;
+    margin-left: 1.5rem;
+}
+
+.subtask-item--ai {
+    border-left-color: var(--color-glaucous, #7698C1);
+}
+
+.subtask-item--checkpoint {
+    border-left-color: #FFD93D;
+    background-color: rgba(255, 217, 61, 0.05);
+}
+
+/* Subtask sequence number */
+.subtask-sequence {
+    position: absolute;
+    left: -1.75rem;
+    top: 1rem;
+    width: 2.5rem;
+    height: 2.5rem;
+    background: white;
+    border: 2px solid #E5E7EB;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #4B5563;
+}
+
+.subtask-item--checkpoint .subtask-sequence {
+    background: #FFD93D;
+    border-color: #FFC91D;
+    color: #2D3748;
+}
+
+/* Subtask connector line */
+.subtask-connector {
+    position: absolute;
+    left: -1.5rem;
+    bottom: -1rem;
+    width: 3px;
+    height: 1rem;
+    background: #E5E7EB;
+}
+
+.subtask-item--checkpoint + .subtask-item .subtask-connector {
+    background: linear-gradient(to bottom, #FFD93D, #E5E7EB);
+}
+
+/* ===================================
+   CHECKPOINT CRITERIA DISPLAY
+   =================================== */
+
+.checkpoint-criteria {
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    background: rgba(255, 217, 61, 0.1);
+    border-left: 3px solid #FFD93D;
+    border-radius: 0.375rem;
+}
+
+.checkpoint-criteria strong {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #2D3748;
+    font-weight: 700;
+}
+
+.checkpoint-criteria p {
+    color: #4B5563;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+/* ===================================
+   ACCESSIBILITY
+   =================================== */
+
+/* Disable animations for users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .task-card--checkpoint,
+    .node-checkpoint,
+    .task-badge--checkpoint,
+    .task-icon--checkpoint,
+    .checkpoint-indicator,
+    .task-card--hitl::after,
+    .node-hitl::after,
+    .workflow-edge--checkpoint,
+    .checkpoint-type-badge {
+        animation: none;
+    }
+
+    .task-card--checkpoint {
+        box-shadow: 0 4px 6px rgba(255, 217, 61, 0.3);
+    }
+}
