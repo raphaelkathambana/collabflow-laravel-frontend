@@ -31,6 +31,7 @@ class Project extends Model
         'complexity_score',
         'ai_analysis',
         'status',
+        'n8n_execution_id',
         'progress',
         'workflow_state',
         'workflow_metadata',
@@ -58,6 +59,11 @@ class Project extends Model
     public function tasks(): HasMany
     {
         return $this->hasMany(Task::class);
+    }
+
+    public function activityLogs(): HasMany
+    {
+        return $this->hasMany(ActivityLog::class);
     }
 
     // Scopes
