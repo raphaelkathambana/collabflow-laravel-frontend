@@ -32,6 +32,12 @@ class Task extends Model
         'due_date',
         'assigned_to',
         'metadata',
+        'output',
+        'started_at',
+        'completed_at',
+        'review_notes',
+        'reviewed_by',
+        'reviewed_at',
     ];
 
     protected $casts = [
@@ -39,12 +45,16 @@ class Task extends Model
         'dependencies' => 'array',
         'deliverables' => 'array',
         'metadata' => 'array',
+        'output' => 'array',
         'estimated_hours' => 'decimal:2',
         'ai_suitability_score' => 'decimal:2',
         'confidence_score' => 'decimal:2',
         'validation_score' => 'integer',
         'sequence' => 'integer',
         'due_date' => 'date',
+        'started_at' => 'datetime',
+        'completed_at' => 'datetime',
+        'reviewed_at' => 'datetime',
     ];
 
     public function project(): BelongsTo
@@ -65,6 +75,16 @@ class Task extends Model
     public function assignee(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    public function reviewer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    public function activityLogs(): HasMany
+    {
+        return $this->hasMany(ActivityLog::class)->orderBy('created_at', 'desc');
     }
 
     // Scopes
@@ -190,5 +210,303 @@ class Task extends Model
         return array_filter($subtasks, function($subtask) {
             return isset($subtask['is_checkpoint']) && $subtask['is_checkpoint'] === true;
         });
+    }
+
+    // ========================================
+    // Work Submission Methods
+    // ========================================
+
+    /**
+     * Submit work output for this task
+     */
+    public function submitWork(array $output, array $options = []): self
+    {
+        $this->output = $output;
+
+        if (isset($options['status'])) {
+            $this->status = $options['status'];
+        }
+
+        if (isset($options['confidence_score'])) {
+            $this->confidence_score = $options['confidence_score'];
+        }
+
+        if (isset($options['started_at'])) {
+            $this->started_at = $options['started_at'];
+        }
+
+        if (isset($options['completed_at'])) {
+            $this->completed_at = $options['completed_at'];
+        }
+
+        // Auto-set completed_at if status is completed
+        if ($this->status === 'completed' && !$this->completed_at) {
+            $this->completed_at = now();
+        }
+
+        $this->save();
+
+        // Log activity
+        $this->logActivity('work_submitted', [
+            'output_type' => $output['type'] ?? 'unknown',
+            'confidence_score' => $this->confidence_score,
+        ]);
+
+        return $this;
+    }
+
+    /**
+     * Request review for this task (HITL workflow)
+     */
+    public function requestReview(string $notes = null): self
+    {
+        $this->status = 'review';
+        if ($notes) {
+            $this->review_notes = $notes;
+        }
+        $this->save();
+
+        $this->logActivity('review_requested', [
+            'notes' => $notes,
+        ]);
+
+        return $this;
+    }
+
+    /**
+     * Approve task after review
+     */
+    public function approve(int $reviewerId, string $notes = null): self
+    {
+        $this->status = 'completed';
+        $this->reviewed_by = $reviewerId;
+        $this->reviewed_at = now();
+        $this->completed_at = now();
+
+        if ($notes) {
+            $this->review_notes = $notes;
+        }
+
+        $this->save();
+
+        $this->logActivity('approved', [
+            'reviewer_id' => $reviewerId,
+            'notes' => $notes,
+        ]);
+
+        return $this;
+    }
+
+    /**
+     * Request changes after review
+     */
+    public function requestChanges(int $reviewerId, string $notes): self
+    {
+        $this->status = 'in_progress';
+        $this->reviewed_by = $reviewerId;
+        $this->reviewed_at = now();
+        $this->review_notes = $notes;
+        $this->save();
+
+        $this->logActivity('changes_requested', [
+            'reviewer_id' => $reviewerId,
+            'notes' => $notes,
+        ]);
+
+        return $this;
+    }
+
+    // ========================================
+    // Subtask Management Methods
+    // ========================================
+
+    /**
+     * Get all subtasks
+     */
+    public function getSubtasks(): array
+    {
+        return $this->metadata['subtasks'] ?? [];
+    }
+
+    /**
+     * Add a new subtask
+     */
+    public function addSubtask(array $subtaskData): self
+    {
+        $metadata = $this->metadata ?? [];
+        $subtasks = $metadata['subtasks'] ?? [];
+
+        // Generate unique ID if not provided
+        if (!isset($subtaskData['id'])) {
+            $subtaskData['id'] = \Illuminate\Support\Str::uuid()->toString();
+        }
+
+        // Set defaults
+        $subtask = array_merge([
+            'name' => '',
+            'description' => '',
+            'type' => 'human',
+            'status' => 'pending',
+            'is_checkpoint' => false,
+            'estimated_hours' => null,
+            'output' => null,
+            'completed_at' => null,
+            'completed_by' => null,
+        ], $subtaskData);
+
+        $subtasks[] = $subtask;
+        $metadata['subtasks'] = $subtasks;
+        $this->metadata = $metadata;
+        $this->save();
+
+        $this->logActivity('subtask_added', [
+            'subtask_id' => $subtask['id'],
+            'subtask_name' => $subtask['name'],
+        ]);
+
+        return $this;
+    }
+
+    /**
+     * Update an existing subtask
+     */
+    public function updateSubtask(string $subtaskId, array $updates): self
+    {
+        $metadata = $this->metadata ?? [];
+        $subtasks = $metadata['subtasks'] ?? [];
+
+        $found = false;
+        foreach ($subtasks as $index => $subtask) {
+            if ($subtask['id'] === $subtaskId) {
+                $subtasks[$index] = array_merge($subtask, $updates);
+                $found = true;
+                break;
+            }
+        }
+
+        if (!$found) {
+            throw new \Exception("Subtask not found: {$subtaskId}");
+        }
+
+        $metadata['subtasks'] = $subtasks;
+        $this->metadata = $metadata;
+        $this->save();
+
+        $this->logActivity('subtask_updated', [
+            'subtask_id' => $subtaskId,
+            'updates' => array_keys($updates),
+        ]);
+
+        return $this;
+    }
+
+    /**
+     * Delete a subtask
+     */
+    public function deleteSubtask(string $subtaskId): self
+    {
+        $metadata = $this->metadata ?? [];
+        $subtasks = $metadata['subtasks'] ?? [];
+
+        $subtasks = array_filter($subtasks, function($subtask) use ($subtaskId) {
+            return $subtask['id'] !== $subtaskId;
+        });
+
+        // Re-index array
+        $metadata['subtasks'] = array_values($subtasks);
+        $this->metadata = $metadata;
+        $this->save();
+
+        $this->logActivity('subtask_deleted', [
+            'subtask_id' => $subtaskId,
+        ]);
+
+        return $this;
+    }
+
+    /**
+     * Complete a subtask
+     */
+    public function completeSubtask(string $subtaskId, array $output = null, string $completedBy = null): self
+    {
+        $updates = [
+            'status' => 'completed',
+            'completed_at' => now()->toIso8601String(),
+            'completed_by' => $completedBy ?? 'unknown',
+        ];
+
+        if ($output) {
+            $updates['output'] = $output;
+        }
+
+        $this->updateSubtask($subtaskId, $updates);
+
+        $this->logActivity('subtask_completed', [
+            'subtask_id' => $subtaskId,
+            'completed_by' => $completedBy,
+        ]);
+
+        return $this;
+    }
+
+    /**
+     * Get subtask by ID
+     */
+    public function getSubtask(string $subtaskId): ?array
+    {
+        $subtasks = $this->getSubtasks();
+
+        foreach ($subtasks as $subtask) {
+            if ($subtask['id'] === $subtaskId) {
+                return $subtask;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Get completed subtasks count
+     */
+    public function getCompletedSubtasksCount(): int
+    {
+        $subtasks = $this->getSubtasks();
+        return count(array_filter($subtasks, function($subtask) {
+            return ($subtask['status'] ?? 'pending') === 'completed';
+        }));
+    }
+
+    /**
+     * Get subtask completion progress (0-100)
+     */
+    public function getSubtaskProgress(): float
+    {
+        $subtasks = $this->getSubtasks();
+        $total = count($subtasks);
+
+        if ($total === 0) {
+            return 0;
+        }
+
+        $completed = $this->getCompletedSubtasksCount();
+        return round(($completed / $total) * 100, 2);
+    }
+
+    // ========================================
+    // Activity Logging
+    // ========================================
+
+    /**
+     * Log an activity for this task
+     */
+    public function logActivity(string $action, array $details = []): void
+    {
+        ActivityLog::create([
+            'project_id' => $this->project_id,
+            'task_id' => $this->id,
+            'user_id' => auth()->id(),
+            'action' => $action,
+            'details' => $details,
+        ]);
     }
 }
