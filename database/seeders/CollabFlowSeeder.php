@@ -5,27 +5,21 @@ namespace Database\Seeders;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
+use Database\Seeders\Concerns\CreatesTestUser;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
 class CollabFlowSeeder extends Seeder
 {
+    use CreatesTestUser;
+
     /**
      * Run the database seeds.
      */
     public function run(): void
     {
-        // Get the first user or create one
-        $user = User::first();
-
-        if (!$user) {
-            $user = User::create([
-                'name' => 'John Doe',
-                'email' => 'john@collabflow.test',
-                'email_verified_at' => now(),
-                'password' => bcrypt('password'),
-            ]);
-        }
+        // Get or create test user
+        $user = $this->getOrCreateTestUser();
 
         // Sample projects with different statuses
         $projects = [

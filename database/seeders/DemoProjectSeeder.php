@@ -5,21 +5,21 @@ namespace Database\Seeders;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
+use Database\Seeders\Concerns\CreatesTestUser;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
 class DemoProjectSeeder extends Seeder
 {
+    use CreatesTestUser;
+
     /**
      * Seed a demo project with tasks for testing n8n workflows
      */
     public function run(): void
     {
-        // Get the first user or create a demo user
-        $user = User::first() ?? User::factory()->create([
-            'name' => 'Demo User',
-            'email' => 'demo@collabflow.test',
-        ]);
+        // Get or create test user
+        $user = $this->getOrCreateTestUser();
 
         // Delete existing demo project if it exists
         Project::where('name', 'Demo: Multi-Task Workflow Test')->delete();
