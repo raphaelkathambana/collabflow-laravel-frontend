@@ -35,6 +35,13 @@ class Project extends Model
         'progress',
         'workflow_state',
         'workflow_metadata',
+        // Orchestration fields
+        'orchestration_status',
+        'orchestration_started_at',
+        'orchestration_completed_at',
+        'last_n8n_execution_id',
+        'total_orchestration_runs',
+        'orchestration_metadata',
     ];
 
     protected $casts = [
@@ -44,12 +51,15 @@ class Project extends Model
         'success_metrics' => 'array',
         'workflow_state' => 'array',
         'workflow_metadata' => 'array',
+        'orchestration_metadata' => 'array',
         'ai_analysis' => 'array',
         'complexity_score' => 'decimal:2',
         'progress' => 'integer',
         'team_size' => 'integer',
         'start_date' => 'date',
         'end_date' => 'date',
+        'orchestration_started_at' => 'datetime',
+        'orchestration_completed_at' => 'datetime',
     ];
 
     public function user(): BelongsTo
@@ -102,5 +112,22 @@ class Project extends Model
             'hitl' => $this->tasks()->where('type', 'hitl')->count(),
             'completed' => $this->tasks()->where('status', 'completed')->count(),
         ];
+    }
+
+    /**
+     * Check if project can be started
+     */
+    public function canBeStarted(): bool
+    {
+        return $this->status === 'draft'
+            && $this->tasks()->count() > 0;
+    }
+
+    /**
+     * Check if orchestration is running
+     */
+    public function isOrchestrating(): bool
+    {
+        return $this->orchestration_status === 'running';
     }
 }

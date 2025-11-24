@@ -487,4 +487,132 @@ class AIEngineService
             return null;
         }
     }
+
+    /**
+     * Upload pre-parsed documents (for tests and document transfers)
+     *
+     * @param string $projectId Project ID for ChromaDB collection
+     * @param array $documents Array of pre-parsed documents with keys: content, source, type, created_at
+     * @return array Response from Python service
+     * @throws \Exception If upload fails
+     */
+    public function uploadDocumentsRaw(string $projectId, array $documents): array
+    {
+        if (!$this->enabled) {
+            throw new \Exception('Python service is disabled');
+        }
+
+        if (empty($documents)) {
+            throw new \Exception('No documents provided');
+        }
+
+        Log::info('Uploading raw documents to ChromaDB', [
+            'project_id' => $projectId,
+            'document_count' => count($documents)
+        ]);
+
+        try {
+            $response = Http::timeout(30)->post("{$this->baseUrl}/api/context/documents/upload", [
+                'project_id' => $projectId,
+                'documents' => $documents
+            ]);
+
+            if ($response->failed()) {
+                throw new \Exception("Upload failed: {$response->body()}");
+            }
+
+            $result = $response->json();
+
+            Log::info('Raw documents uploaded successfully', [
+                'project_id' => $projectId,
+                'result' => $result
+            ]);
+
+            return $result;
+
+        } catch (\Illuminate\Http\Client\RequestException $e) {
+            Log::error('Raw document upload HTTP error', [
+                'error' => $e->getMessage(),
+                'project_id' => $projectId
+            ]);
+            throw $e;
+
+        } catch (\Exception $e) {
+            Log::error('Raw document upload exception', [
+                'error' => $e->getMessage(),
+                'project_id' => $projectId
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Get documents from ChromaDB for a project
+     *
+     * @param string $projectId Project ID
+     * @return array Response with document count and documents
+     * @throws \Exception If retrieval fails
+     */
+    public function getDocuments(string $projectId): array
+    {
+        if (!$this->enabled) {
+            throw new \Exception('Python service is disabled');
+        }
+
+        Log::info('Retrieving documents from ChromaDB', [
+            'project_id' => $projectId
+        ]);
+
+        try {
+            $response = Http::timeout(30)->get("{$this->baseUrl}/api/context/documents/{$projectId}");
+
+            if ($response->failed()) {
+                throw new \Exception("Retrieval failed: {$response->body()}");
+            }
+
+            return $response->json();
+
+        } catch (\Exception $e) {
+            Log::error('Document retrieval exception', [
+                'error' => $e->getMessage(),
+                'project_id' => $projectId
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Delete documents from ChromaDB for a project
+     *
+     * @param string $projectId Project ID
+     * @return array Response
+     * @throws \Exception If deletion fails
+     */
+    public function deleteDocuments(string $projectId): array
+    {
+        if (!$this->enabled) {
+            throw new \Exception('Python service is disabled');
+        }
+
+        Log::info('Deleting documents from ChromaDB', [
+            'project_id' => $projectId
+        ]);
+
+        try {
+            $response = Http::timeout(30)->delete("{$this->baseUrl}/api/context/documents/{$projectId}");
+
+            if ($response->failed()) {
+                throw new \Exception("Deletion failed: {$response->body()}");
+            }
+
+            return $response->json();
+
+        } catch (\Exception $e) {
+            Log::error('Document deletion exception', [
+                'error' => $e->getMessage(),
+                'project_id' => $projectId
+            ]);
+            throw $e;
+        }
+    }
 }

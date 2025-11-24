@@ -40,4 +40,9 @@ return [
         'enabled' => env('PYTHON_SERVICE_ENABLED', true),
     ],
 
+    'n8n' => [
+        'webhook_url' => env('N8N_WEBHOOK_URL', 'https://n8n.collabflow-n8n.cloud/webhook/project/orchestration'),
+        'timeout' => env('N8N_TIMEOUT', 10),
+    ],
+
 ];
