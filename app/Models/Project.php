@@ -41,6 +41,7 @@ class Project extends Model
         'goals' => 'array',
         'kpis' => 'array',
         'reference_documents' => 'array',
+        'success_metrics' => 'array',
         'workflow_state' => 'array',
         'workflow_metadata' => 'array',
         'ai_analysis' => 'array',
