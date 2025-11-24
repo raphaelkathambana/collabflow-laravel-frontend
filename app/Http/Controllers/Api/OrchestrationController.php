@@ -23,7 +23,7 @@ class OrchestrationController extends Controller
         try {
             // Validate incoming request
             $validated = $request->validate([
-                'project_id' => 'required|integer|exists:projects,id',
+                'project_id' => 'required|uuid|exists:projects,id',
                 'status' => 'required|string',
                 'execution_id' => 'required|string',
                 'workflow_name' => 'sometimes|string',
