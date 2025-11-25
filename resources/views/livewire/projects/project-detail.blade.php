@@ -698,13 +698,10 @@
                                            color: var(--color-text-900);
                                            --tw-ring-color: var(--color-accent-200);
                                            {{ !$editingProject ? 'cursor: not-allowed;' : '' }}">
-                                <option value="healthcare">Healthcare</option>
-                                <option value="finance">Finance</option>
-                                <option value="education">Education</option>
-                                <option value="retail">Retail</option>
-                                <option value="manufacturing">Manufacturing</option>
-                                <option value="technology">Technology</option>
-                                <option value="other">Other</option>
+                                <option value="software_development">Software Development</option>
+                                <option value="research_analysis">Research & Analysis</option>
+                                <option value="marketing_campaign">Marketing Campaign</option>
+                                <option value="custom">Custom Project</option>
                             </select>
                             @error('editDomain') <span class="text-xs mt-1" style="color: var(--color-bittersweet);">{{ $message }}</span> @enderror
                         </div>

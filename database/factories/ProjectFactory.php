@@ -20,7 +20,7 @@ class ProjectFactory extends Factory
             'user_id' => \App\Models\User::factory(),
             'name' => fake()->sentence(3),
             'description' => fake()->paragraph(),
-            'domain' => fake()->randomElement(['software_development', 'healthcare', 'finance', 'education', 'retail', 'manufacturing', 'technology', 'other']),
+            'domain' => fake()->randomElement(['software_development', 'research_analysis', 'marketing_campaign', 'custom']),
             'status' => fake()->randomElement(['draft', 'planning', 'active', 'in_progress', 'on_hold', 'completed', 'cancelled']),
             'start_date' => now(),
             'end_date' => now()->addDays(30),

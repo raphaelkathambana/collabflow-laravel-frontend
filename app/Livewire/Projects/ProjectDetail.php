@@ -254,7 +254,7 @@ class ProjectDetail extends Component
             'editName' => 'required|min:3|max:255',
             'editDescription' => 'required|min:10',
             'editStatus' => 'required|in:planning,active,on_hold,completed,cancelled',
-            'editDomain' => 'required|in:healthcare,finance,education,retail,manufacturing,technology,other',
+            'editDomain' => 'required|in:software_development,research_analysis,marketing_campaign,custom',
             'editStartDate' => 'required|date',
             'editEndDate' => 'required|date|after:editStartDate',
         ], [
