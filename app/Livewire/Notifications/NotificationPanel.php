@@ -10,53 +10,16 @@ class NotificationPanel extends Component
     public $isOpen = false;
     public $filter = 'all'; // all, unread, read
 
-    public $notifications = [];
-
     #[On('toggle-notifications')]
     public function togglePanel()
     {
         $this->isOpen = !$this->isOpen;
-    }
 
-    public function mount()
-    {
-        // Mock notifications data
-        $this->notifications = [
-            [
-                'id' => 1,
-                'title' => 'Task Completed',
-                'message' => 'Design System Setup has been completed',
-                'timestamp' => '2 minutes ago',
-                'read' => false,
-                'type' => 'task',
-            ],
-            [
-                'id' => 2,
-                'title' => 'Project Update',
-                'message' => 'Website Redesign is now 75% complete',
-                'timestamp' => '1 hour ago',
-                'read' => false,
-                'type' => 'project',
-            ],
-            [
-                'id' => 3,
-                'title' => 'New Comment',
-                'message' => 'Alice commented on Wireframe Review',
-                'timestamp' => '3 hours ago',
-                'read' => true,
-                'type' => 'comment',
-            ],
-            [
-                'id' => 4,
-                'title' => 'HITL Checkpoint',
-                'message' => 'Awaiting your approval on Design Review',
-                'timestamp' => '5 hours ago',
-                'read' => true,
-                'type' => 'hitl',
-            ],
-        ];
+        // Refresh notifications when panel opens
+        if ($this->isOpen) {
+            $this->dispatch('$refresh');
+        }
     }
-
 
     public function closePanel()
     {
@@ -70,48 +33,49 @@ class NotificationPanel extends Component
 
     public function markAsRead($id)
     {
-        $index = collect($this->notifications)->search(fn($n) => $n['id'] == $id);
-        if ($index !== false) {
-            $this->notifications[$index]['read'] = !$this->notifications[$index]['read'];
+        $notification = auth()->user()->notifications()->find($id);
+
+        if ($notification) {
+            if ($notification->read_at) {
+                $notification->markAsUnread();
+            } else {
+                $notification->markAsRead();
+            }
         }
     }
 
     public function markAllAsRead()
     {
-        foreach ($this->notifications as &$notification) {
-            $notification['read'] = true;
-        }
+        auth()->user()->unreadNotifications->markAsRead();
     }
 
     public function deleteNotification($id)
     {
-        $this->notifications = collect($this->notifications)
-            ->filter(fn($n) => $n['id'] != $id)
-            ->values()
-            ->toArray();
+        auth()->user()->notifications()->find($id)?->delete();
     }
 
-    public function getFilteredNotificationsProperty()
+    public function getNotificationsProperty()
     {
-        return collect($this->notifications)->filter(function ($notification) {
-            if ($this->filter === 'unread') {
-                return !$notification['read'];
-            } elseif ($this->filter === 'read') {
-                return $notification['read'];
-            }
-            return true;
-        })->values()->toArray();
+        $query = auth()->user()->notifications();
+
+        if ($this->filter === 'unread') {
+            $query->whereNull('read_at');
+        } elseif ($this->filter === 'read') {
+            $query->whereNotNull('read_at');
+        }
+
+        return $query->latest()->take(50)->get();
     }
 
     public function getUnreadCountProperty()
     {
-        return collect($this->notifications)->filter(fn($n) => !$n['read'])->count();
+        return auth()->user()->unreadNotifications()->count();
     }
 
     public function render()
     {
         return view('livewire.notifications.notification-panel', [
-            'filteredNotifications' => $this->filteredNotifications,
+            'notifications' => $this->notifications,
             'unreadCount' => $this->unreadCount,
         ]);
     }
