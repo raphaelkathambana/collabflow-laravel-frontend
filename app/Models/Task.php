@@ -252,6 +252,17 @@ class Task extends Model
             'confidence_score' => $this->confidence_score,
         ]);
 
+        // Send notification to assignee and project owner
+        $this->notifyStakeholders(new \App\Notifications\WorkSubmittedNotification(
+            $this,
+            $options['submitted_by'] ?? 'AI Agent'
+        ));
+
+        // If status is review, also send review request
+        if ($this->status === 'review') {
+            $this->notifyReviewers(new \App\Notifications\ReviewRequestedNotification($this));
+        }
+
         return $this;
     }
 
@@ -294,6 +305,12 @@ class Task extends Model
             'notes' => $notes,
         ]);
 
+        // Notify assignee and project owner
+        $reviewer = User::find($reviewerId);
+        if ($reviewer) {
+            $this->notifyStakeholders(new \App\Notifications\TaskApprovedNotification($this, $reviewer));
+        }
+
         return $this;
     }
 
@@ -312,6 +329,12 @@ class Task extends Model
             'reviewer_id' => $reviewerId,
             'notes' => $notes,
         ]);
+
+        // Notify assignee about requested changes
+        $reviewer = User::find($reviewerId);
+        if ($reviewer) {
+            $this->notifyStakeholders(new \App\Notifications\ChangesRequestedNotification($this, $reviewer, $notes));
+        }
 
         return $this;
     }
@@ -429,6 +452,8 @@ class Task extends Model
      */
     public function completeSubtask(string $subtaskId, array $output = null, string $completedBy = null): self
     {
+        $subtask = $this->getSubtask($subtaskId);
+
         $updates = [
             'status' => 'completed',
             'completed_at' => now()->toIso8601String(),
@@ -445,6 +470,15 @@ class Task extends Model
             'subtask_id' => $subtaskId,
             'completed_by' => $completedBy,
         ]);
+
+        // Send notification
+        if ($subtask) {
+            $this->notifyStakeholders(new \App\Notifications\SubtaskCompletedNotification(
+                $this,
+                $subtask['name'] ?? 'Subtask',
+                $completedBy ?? 'unknown'
+            ));
+        }
 
         return $this;
     }
@@ -508,5 +542,56 @@ class Task extends Model
             'action' => $action,
             'details' => $details,
         ]);
+    }
+
+    // ========================================
+    // Notification Helpers
+    // ========================================
+
+    /**
+     * Notify all stakeholders (assignee + project owner)
+     */
+    protected function notifyStakeholders($notification): void
+    {
+        $recipients = collect();
+
+        // Add assignee if exists
+        if ($this->assigned_to && $this->assignee) {
+            $recipients->push($this->assignee);
+        }
+
+        // Add project owner
+        if ($this->project && $this->project->user_id) {
+            $owner = User::find($this->project->user_id);
+            if ($owner && !$recipients->contains('id', $owner->id)) {
+                $recipients->push($owner);
+            }
+        }
+
+        // Send notifications
+        foreach ($recipients as $user) {
+            $user->notify($notification);
+        }
+    }
+
+    /**
+     * Notify reviewers (project owner and managers)
+     */
+    protected function notifyReviewers($notification): void
+    {
+        $recipients = collect();
+
+        // Add project owner
+        if ($this->project && $this->project->user_id) {
+            $owner = User::find($this->project->user_id);
+            if ($owner) {
+                $recipients->push($owner);
+            }
+        }
+
+        // Send notifications
+        foreach ($recipients as $user) {
+            $user->notify($notification);
+        }
     }
 }

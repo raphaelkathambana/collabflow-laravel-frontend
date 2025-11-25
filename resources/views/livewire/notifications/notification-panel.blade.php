@@ -1,4 +1,4 @@
-<div style="display: {{ $isOpen ? 'block' : 'none' }};">
+<div style="display: {{ $isOpen ? 'block' : 'none' }};" wire:poll.30s>
     {{-- Overlay --}}
     <div class="fixed inset-0 bg-black/50 z-40" wire:click="closePanel"></div>
 
@@ -56,15 +56,19 @@
 
         {{-- Notifications List --}}
         <div class="flex-1 overflow-y-auto">
-            @if(count($filteredNotifications) === 0)
+            @if($notifications->isEmpty())
                 <x-empty-state
                     title="No Notifications"
                     description="You're all caught up! We'll notify you when there's something new."
                 />
             @else
                 <div class="divide-y" style="border-color: var(--color-background-300);">
-                    @foreach($filteredNotifications as $notification)
+                    @foreach($notifications as $notification)
                         @php
+                            $data = $notification->data;
+                            $notificationType = $data['type'] ?? 'task';
+                            $isUnread = is_null($notification->read_at);
+
                             $typeColors = [
                                 'task' => 'rgba(196,214,176,0.1)',
                                 'project' => 'rgba(92,128,188,0.1)',
@@ -85,51 +89,60 @@
                             ];
                         @endphp
                         <div
-                            class="p-6 transition-colors border-l-4"
+                            class="p-6 transition-colors border-l-4 {{ isset($data['url']) ? 'cursor-pointer' : '' }}"
                             style="
-                                border-left-color: {{ !$notification['read'] ? 'var(--color-glaucous)' : 'transparent' }};
-                                background-color: {{ !$notification['read'] ? 'var(--color-background-100)' : 'transparent' }};
+                                border-left-color: {{ $isUnread ? 'var(--color-glaucous)' : 'transparent' }};
+                                background-color: {{ $isUnread ? 'var(--color-background-100)' : 'transparent' }};
                             "
                             onmouseover="this.style.backgroundColor='var(--color-background-100)'"
-                            onmouseout="this.style.backgroundColor='{{ !$notification['read'] ? 'var(--color-background-100)' : 'transparent' }}'"
+                            onmouseout="this.style.backgroundColor='{{ $isUnread ? 'var(--color-background-100)' : 'transparent' }}'"
+                            @if(isset($data['url']))
+                                onclick="window.location.href='{{ $data['url'] }}'"
+                            @endif
                         >
                             <div class="flex items-start gap-4">
                                 {{-- Type Badge --}}
-                                <div class="px-2 py-1 rounded text-xs font-medium flex-shrink-0 border" style="background-color: {{ $typeColors[$notification['type']] }}; border-color: {{ $typeBorderColors[$notification['type']] }};">
-                                    {{ $typeLabels[$notification['type']] }}
+                                <div class="px-2 py-1 rounded text-xs font-medium flex-shrink-0 border" style="background-color: {{ $typeColors[$notificationType] }}; border-color: {{ $typeBorderColors[$notificationType] }};">
+                                    {{ $data['icon'] ?? '' }} {{ $typeLabels[$notificationType] }}
                                 </div>
 
                                 {{-- Content --}}
                                 <div class="flex-1 min-w-0">
-                                    <h3 class="font-semibold" style="color: var(--color-text-800);">{{ $notification['title'] }}</h3>
-                                    <p class="text-sm mt-1" style="color: var(--color-text-600);">{{ $notification['message'] }}</p>
-                                    <p class="text-xs mt-2" style="color: var(--color-text-500);">{{ $notification['timestamp'] }}</p>
+                                    <h3 class="font-semibold" style="color: var(--color-text-800);">
+                                        {{ $data['title'] ?? 'Notification' }}
+                                    </h3>
+                                    <p class="text-sm mt-1" style="color: var(--color-text-600);">
+                                        {{ $data['message'] ?? '' }}
+                                    </p>
+                                    <p class="text-xs mt-2" style="color: var(--color-text-500);">
+                                        {{ $notification->created_at->diffForHumans() }}
+                                    </p>
                                 </div>
 
                                 {{-- Actions --}}
-                                <div class="flex items-center gap-2 flex-shrink-0">
+                                <div class="flex items-center gap-2 flex-shrink-0" onclick="event.stopPropagation()">
                                     <button
                                         type="button"
-                                        wire:click="markAsRead({{ $notification['id'] }})"
+                                        wire:click="markAsRead('{{ $notification->id }}')"
                                         class="p-2 rounded-lg transition-colors"
                                         style="color: var(--color-text-600);"
                                         onmouseover="this.style.color='var(--color-glaucous)'"
                                         onmouseout="this.style.color='var(--color-text-600)'"
-                                        title="{{ $notification['read'] ? 'Mark as unread' : 'Mark as read' }}"
+                                        title="{{ $isUnread ? 'Mark as read' : 'Mark as unread' }}"
                                     >
-                                        @if($notification['read'])
+                                        @if($isUnread)
                                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                                             </svg>
                                         @else
                                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                             </svg>
                                         @endif
                                     </button>
                                     <button
                                         type="button"
-                                        wire:click="deleteNotification({{ $notification['id'] }})"
+                                        wire:click="deleteNotification('{{ $notification->id }}')"
                                         class="p-2 rounded-lg transition-colors"
                                         style="color: var(--color-text-600);"
                                         onmouseover="this.style.color='var(--color-bittersweet)'"
