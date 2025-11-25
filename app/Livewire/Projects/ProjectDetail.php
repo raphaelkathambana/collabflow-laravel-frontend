@@ -4,6 +4,7 @@ namespace App\Livewire\Projects;
 
 use App\Models\Project;
 use App\Models\Task;
+use App\Events\TaskCompleted;
 use Livewire\Component;
 
 class ProjectDetail extends Component
@@ -102,6 +103,11 @@ class ProjectDetail extends Component
 
         $task->status = $newStatus;
         $task->save();
+
+        // Dispatch TaskCompleted event for orchestration system
+        if ($newStatus === 'completed' && $task->project->orchestration_status === 'running') {
+            event(new TaskCompleted($task));
+        }
 
         $this->loadProject();
         session()->flash('message', 'Task status updated successfully!');
