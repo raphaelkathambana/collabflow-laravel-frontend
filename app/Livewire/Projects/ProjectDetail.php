@@ -271,6 +271,8 @@ class ProjectDetail extends Component
             ->where('user_id', auth()->id())
             ->firstOrFail();
 
+        $oldStatus = $project->status;
+
         $project->update([
             'name' => $this->editName,
             'description' => $this->editDescription,
@@ -280,11 +282,24 @@ class ProjectDetail extends Component
             'end_date' => $this->editEndDate,
         ]);
 
+        // Auto-start orchestration when project becomes active
+        if ($this->editStatus === 'active' && $oldStatus !== 'active' && $project->orchestration_status === 'not_started') {
+            $project->update([
+                'orchestration_status' => 'running',
+                'orchestration_started_at' => now()
+            ]);
+
+            // Trigger orchestration
+            event(new ProjectStarted($project));
+
+            session()->flash('message', 'Project updated successfully! AI orchestration has started automatically.');
+        } else {
+            session()->flash('message', 'Project updated successfully!');
+        }
+
         $this->editingProject = false;
         $this->loadProject();
         $this->initializeEditFields();
-
-        session()->flash('message', 'Project updated successfully!');
     }
 
     public function updateProjectStatus($newStatus)
