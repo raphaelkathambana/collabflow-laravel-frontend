@@ -5,6 +5,7 @@ namespace App\Livewire\Projects;
 use App\Models\Project;
 use App\Models\Task;
 use App\Events\TaskCompleted;
+use App\Events\ProjectStarted;
 use Livewire\Component;
 
 class ProjectDetail extends Component
@@ -299,11 +300,26 @@ class ProjectDetail extends Component
             ->where('user_id', auth()->id())
             ->firstOrFail();
 
+        $oldStatus = $project->status;
         $project->update(['status' => $newStatus]);
+
+        // Auto-start orchestration when project becomes active
+        if ($newStatus === 'active' && $oldStatus !== 'active' && $project->orchestration_status === 'not_started') {
+            $project->update([
+                'orchestration_status' => 'running',
+                'orchestration_started_at' => now()
+            ]);
+
+            // Trigger orchestration
+            event(new ProjectStarted($project));
+
+            session()->flash('message', 'Project activated! AI orchestration has started automatically.');
+        } else {
+            session()->flash('message', 'Project status updated to ' . ucfirst($newStatus));
+        }
+
         $this->loadProject();
         $this->initializeEditFields();
-
-        session()->flash('message', 'Project status updated to ' . ucfirst($newStatus));
     }
 
     public function getFilteredTasksProperty()
