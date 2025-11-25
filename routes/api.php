@@ -15,13 +15,20 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-// n8n Orchestration Callbacks (no auth required)
-Route::post('/orchestration/callback', [OrchestrationController::class, 'callback'])
-    ->name('api.orchestration.callback');
-
 // Project API endpoints (no auth required for n8n access)
-Route::get('/projects/{id}', [ProjectController::class, 'show'])
-    ->name('api.projects.show');
+Route::prefix('projects')->group(function () {
+    Route::get('/{id}', [ProjectController::class, 'show'])->name('api.projects.show');
+    Route::get('/{id}/tasks', [ProjectController::class, 'tasks'])->name('api.projects.tasks');
+    Route::get('/{id}/ready-tasks', [ProjectController::class, 'readyTasks'])->name('api.projects.ready-tasks');
+    Route::post('/{id}/start', [ProjectController::class, 'start'])->name('api.projects.start');
+    Route::post('/{id}/pause', [ProjectController::class, 'pause'])->name('api.projects.pause');
+    Route::post('/{id}/resume', [ProjectController::class, 'resume'])->name('api.projects.resume');
+});
 
-Route::get('/projects/{id}/tasks', [ProjectController::class, 'tasks'])
-    ->name('api.projects.tasks');
+// n8n Orchestration Callbacks (no auth required)
+Route::prefix('orchestration')->group(function () {
+    Route::post('/callback', [OrchestrationController::class, 'callback'])
+        ->name('api.orchestration.callback');
+    Route::patch('/tasks/{taskId}/status', [OrchestrationController::class, 'updateTaskStatus'])
+        ->name('api.orchestration.task-status');
+});

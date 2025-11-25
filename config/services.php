@@ -43,6 +43,8 @@ return [
     'n8n' => [
         'webhook_url' => env('N8N_WEBHOOK_URL', 'https://n8n.collabflow-n8n.cloud/webhook/project/orchestration'),
         'timeout' => env('N8N_TIMEOUT', 10),
+        'max_retries' => env('N8N_MAX_RETRIES', 3),
+        'retry_delay' => env('N8N_RETRY_DELAY', 2),
     ],
 
 ];

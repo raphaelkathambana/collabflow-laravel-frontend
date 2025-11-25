@@ -4,117 +4,160 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Project;
-use App\Models\ActivityLog;
+use App\Models\Task;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Validator;
 
 class OrchestrationController extends Controller
 {
     /**
-     * Handle n8n orchestration callback
-     *
-     * Receives completion notifications from n8n workflows
-     * and updates project status accordingly
+     * Update task execution status (for progress updates during execution)
      */
-    public function callback(Request $request): JsonResponse
+    public function updateTaskStatus(Request $request, string $taskId): JsonResponse
     {
+        $validator = Validator::make($request->all(), [
+            'status' => 'required|string|in:assigned,in_progress,completed,failed',
+            'execution_id' => 'required|string',
+            'progress' => 'nullable|integer|min:0|max:100',
+            'message' => 'nullable|string|max:500'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Invalid payload',
+                'errors' => $validator->errors()
+            ], 400);
+        }
+
         try {
-            // Validate incoming request
-            $validated = $request->validate([
-                'project_id' => 'required|uuid|exists:projects,id',
-                'status' => 'required|string',
-                'execution_id' => 'required|string',
-                'workflow_name' => 'sometimes|string',
-                'total_tasks_processed' => 'sometimes|integer',
-                'completed_at' => 'sometimes|date'
+            $task = Task::findOrFail($taskId);
+
+            $metadata = $task->metadata ?? [];
+            $metadata['execution_updates'] = $metadata['execution_updates'] ?? [];
+            $metadata['execution_updates'][] = [
+                'status' => $request->status,
+                'execution_id' => $request->execution_id,
+                'progress' => $request->progress,
+                'message' => $request->message,
+                'timestamp' => now()->toISOString()
+            ];
+
+            $task->update([
+                'status' => $request->status,
+                'metadata' => $metadata
             ]);
 
-            Log::info('Orchestration callback received', [
-                'project_id' => $validated['project_id'],
-                'status' => $validated['status'],
-                'execution_id' => $validated['execution_id']
-            ]);
-
-            // Find project
-            $project = Project::findOrFail($validated['project_id']);
-
-            // Map n8n status to project status
-            $projectStatus = $this->mapN8nStatus($validated['status']);
-
-            // Update project
-            $project->update([
-                'status' => $projectStatus,
-                'n8n_execution_id' => $validated['execution_id'],
-            ]);
-
-            // Log the activity
-            ActivityLog::create([
-                'project_id' => $project->id,
-                'action' => 'orchestration_callback',
-                'details' => $validated
-            ]);
-
-            Log::info('Project updated successfully', [
-                'project_id' => $project->id,
-                'new_status' => $projectStatus
+            Log::info('Task status updated', [
+                'task_id' => $task->id,
+                'status' => $request->status,
+                'progress' => $request->progress
             ]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Callback received and processed',
-                'project_id' => $project->id
-            ], 200);
-
-        } catch (ValidationException $e) {
-            Log::warning('Orchestration callback validation failed', [
-                'errors' => $e->errors(),
-                'data' => $request->all()
+                'message' => 'Task status updated',
+                'task_id' => $task->id,
+                'status' => $task->status
             ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-                'errors' => $e->errors()
-            ], 422);
-
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            Log::error('Project not found in orchestration callback', [
-                'project_id' => $request->input('project_id'),
-                'error' => $e->getMessage()
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'error' => $e->getMessage()
-            ], 404);
 
         } catch (\Exception $e) {
-            Log::error('Orchestration callback failed', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'data' => $request->all()
+            Log::error('Task status update failed', [
+                'task_id' => $taskId,
+                'error' => $e->getMessage()
             ]);
 
             return response()->json([
                 'success' => false,
-                'error' => $e->getMessage()
+                'error' => 'Failed to update task status'
             ], 500);
         }
     }
 
     /**
-     * Map n8n workflow status to project status
+     * Handle callback from n8n after task execution
      */
-    private function mapN8nStatus(string $n8nStatus): string
+    public function callback(Request $request): JsonResponse
     {
-        return match($n8nStatus) {
-            'completed' => 'active',
-            'failed' => 'failed',
-            'running' => 'processing',
-            'partial_success' => 'active', // Consider partial success as active
-            default => 'draft'
-        };
+        // Validate incoming data
+        $validator = Validator::make($request->all(), [
+            'project_id' => 'required|uuid|exists:projects,id',
+            'task_id' => 'required|uuid|exists:tasks,id',
+            'task_type' => 'required|string|in:ai,human,hitl',
+            'status' => 'required|string|in:completed,assigned,in_progress,failed',
+            'execution_id' => 'required|string',
+            'result_data' => 'required|array'
+        ]);
+
+        if ($validator->fails()) {
+            Log::warning('Invalid callback payload', [
+                'errors' => $validator->errors(),
+                'payload' => $request->all()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Invalid payload',
+                'errors' => $validator->errors()
+            ], 400);
+        }
+
+        try {
+            $project = Project::findOrFail($request->project_id);
+            $task = Task::findOrFail($request->task_id);
+
+            // Update task status
+            $task->update([
+                'status' => $request->status,
+                'metadata' => array_merge(
+                    $task->metadata ?? [],
+                    [
+                        'last_execution' => $request->result_data,
+                        'last_execution_id' => $request->execution_id,
+                        'last_execution_at' => now()->toISOString()
+                    ]
+                )
+            ]);
+
+            // Update project orchestration tracking
+            $project->update([
+                'last_n8n_execution_id' => $request->execution_id
+            ]);
+
+            Log::info('Task callback processed', [
+                'project_id' => $project->id,
+                'task_id' => $task->id,
+                'task_type' => $request->task_type,
+                'status' => $request->status,
+                'execution_id' => $request->execution_id
+            ]);
+
+            // Only dispatch TaskCompleted event if status is actually completed
+            if ($request->status === 'completed') {
+                event(new \App\Events\TaskCompleted($task));
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Callback received and processed',
+                'project_id' => $project->id,
+                'task_id' => $task->id
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Callback processing failed', [
+                'project_id' => $request->project_id ?? null,
+                'task_id' => $request->task_id ?? null,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to process callback'
+            ], 500);
+        }
     }
 }
