@@ -29,6 +29,12 @@ Route::prefix('projects')->group(function () {
 Route::prefix('orchestration')->group(function () {
     Route::post('/callback', [OrchestrationController::class, 'callback'])
         ->name('api.orchestration.callback');
+    Route::post('/batch-callback', [OrchestrationController::class, 'batchCallback'])
+        ->name('api.orchestration.batch-callback');
+    Route::post('/errors', [OrchestrationController::class, 'logError'])
+        ->name('api.orchestration.log-error');
+    Route::post('/error-recovery-complete', [OrchestrationController::class, 'errorRecoveryComplete'])
+        ->name('api.orchestration.error-recovery-complete');
     Route::patch('/tasks/{taskId}/status', [OrchestrationController::class, 'updateTaskStatus'])
         ->name('api.orchestration.task-status');
 });

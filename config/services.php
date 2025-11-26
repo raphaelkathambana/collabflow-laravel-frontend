@@ -41,7 +41,17 @@ return [
     ],
 
     'n8n' => [
-        'webhook_url' => env('N8N_WEBHOOK_URL', 'https://n8n.collabflow-n8n.cloud/webhook/project/orchestration'),
+        'base_url' => env('N8N_BASE_URL', 'https://n8n.collabflow-n8n.cloud'),
+        'webhooks' => [
+            'project_start' => env('N8N_PROJECT_START_WEBHOOK', '/webhook/collabflow-project-start'),
+            'multi_task' => env('N8N_MULTI_TASK_WEBHOOK', '/webhook/collabflow-multi-task'),
+            'task_status' => env('N8N_TASK_STATUS_WEBHOOK', '/webhook/collabflow-task-status'),
+            'hitl_start' => env('N8N_HITL_START_WEBHOOK', '/webhook/collabflow-hitl-start'),
+            'document_upload' => env('N8N_DOCUMENT_UPLOAD_WEBHOOK', '/webhook/collabflow-document-upload'),
+            'notification' => env('N8N_NOTIFICATION_WEBHOOK', '/webhook/collabflow-notification'),
+        ],
+        // Legacy webhook_url for backwards compatibility (maps to multi_task)
+        'webhook_url' => env('N8N_BASE_URL', 'https://n8n.collabflow-n8n.cloud') . env('N8N_MULTI_TASK_WEBHOOK', '/webhook/collabflow-multi-task'),
         'timeout' => env('N8N_TIMEOUT', 10),
         'max_retries' => env('N8N_MAX_RETRIES', 3),
         'retry_delay' => env('N8N_RETRY_DELAY', 2),
