@@ -83,8 +83,16 @@ class OrchestrationService
                 })
                 ->post($this->n8nWebhookUrl, [
                     'project_id' => $project->id,
+                    'project_name' => $project->name,
+                    'user_id' => $project->user_id,
                     'trigger_source' => 'laravel_automatic',
-                    'attempt' => $attempt
+                    'attempt' => $attempt,
+                    // URLs for n8n to fetch data
+                    'ready_tasks_url' => url("/api/projects/{$project->id}/ready-tasks"),
+                    'callback_url' => url('/api/orchestration/batch-callback'),
+                    // Task metadata for logging
+                    'ready_task_count' => $readyTasks->count(),
+                    'ready_task_ids' => $taskIds,
                 ]);
 
             if ($response->successful()) {
