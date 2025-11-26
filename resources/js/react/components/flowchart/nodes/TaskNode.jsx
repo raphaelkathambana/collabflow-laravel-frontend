@@ -1,10 +1,10 @@
-// Hybrid pattern: Import for Vite plugin, then override with window.React
-import React, { memo } from 'react';
+// Use window.React ONLY (shared instance from vendor-react.js)
+// CRITICAL: DO NOT import React directly - this would bundle React into the chunk!
 import { Handle, Position } from '@xyflow/react';
 import { validateTask } from '../utils/validationUtils';
 
-// Use shared React instance from vendor-react.js
-const SharedReact = window.React || React;
+const SharedReact = window.React;
+const { memo } = SharedReact;
 
 const taskTypeConfig = {
     ai: {

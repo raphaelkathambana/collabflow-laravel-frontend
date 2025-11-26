@@ -1,8 +1,7 @@
-// Hybrid pattern: Import for Vite plugin, then override with window.React
-import React, { useState } from 'react';
-
-// Override with window.React (the shared instance from vendor-react.js)
-const SharedReact = window.React || React;
+// Use window.React ONLY (shared instance from vendor-react.js)
+// CRITICAL: DO NOT import React directly - this would bundle React into the chunk!
+const SharedReact = window.React;
+const { useState } = SharedReact;
 
 // Verify React is available
 if (!SharedReact) {

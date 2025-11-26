@@ -25,7 +25,8 @@ class GenerateProjectTasks implements ShouldQueue
     public function __construct(
         public string $componentId,
         public array $context,
-        public ?array $aiAnalysis
+        public ?array $aiAnalysis,
+        public ?string $projectId = null
     ) {
         //
     }
@@ -36,16 +37,18 @@ class GenerateProjectTasks implements ShouldQueue
     public function handle(AIEngineService $aiService): void
     {
         try {
+            // Use provided projectId or generate temp one
+            $projectId = $this->projectId ?? ('temp_' . Str::uuid());
+
             Log::info('Background job: Starting task generation', [
                 'component_id' => $this->componentId,
-                'context' => $this->context
+                'context' => $this->context,
+                'project_id' => $projectId
             ]);
-
-            $tempProjectId = 'temp_' . Str::uuid();
 
             // Call Python service for task generation
             $result = $aiService->generateTasks(
-                $tempProjectId,
+                $projectId,
                 $this->context['user_id'],
                 $this->context,
                 $this->aiAnalysis

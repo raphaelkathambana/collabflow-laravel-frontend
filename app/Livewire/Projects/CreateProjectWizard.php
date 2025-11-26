@@ -45,6 +45,8 @@ class CreateProjectWizard extends Component
     public $usingFallback = false; // Whether we're using fallback task generation
     public $aiDependencies = []; // Dependencies from Python service
     public $aiMetadata = null; // Metadata from Python service (task counts, hours, etc.)
+    public $chromaProjectId = null; // Project ID for ChromaDB document association
+    public $documentsUploaded = false; // Flag to track if documents have been uploaded
 
     // Step 4: Workflow Review (NEW)
     public $workflowState = null;
@@ -168,6 +170,14 @@ class CreateProjectWizard extends Component
 
     public function mount()
     {
+        // Generate temp project ID ONCE - will be used for ChromaDB document upload and task generation
+        $this->chromaProjectId = 'temp_' . \Illuminate\Support\Str::uuid();
+
+        logger()->info('Wizard initialized with project_id', [
+            'project_id' => $this->chromaProjectId,
+            'component_id' => $this->getId()
+        ]);
+
         // Set default dates
         $this->start_date = now()->format('Y-m-d');
         $this->end_date = now()->addDays(30)->format('Y-m-d');
@@ -272,6 +282,39 @@ class CreateProjectWizard extends Component
                 $this->currentStep++;
 
                 logger()->info('Advanced to step: ' . $this->currentStep);
+
+                // Step 2 → Step 3: Dispatch background job for document upload
+                if ($this->currentStep === 3 && !empty($this->referenceDocuments)) {
+                    logger()->info('Step 3 entered with documents, dispatching upload job', [
+                        'document_count' => count($this->referenceDocuments)
+                    ]);
+
+                    // Store files temporarily for background job
+                    $storedFiles = [];
+                    foreach ($this->referenceDocuments as $file) {
+                        $tempPath = $file->store('temp-uploads', 'local');
+                        $storedFiles[] = [
+                            'temp_path' => $tempPath,
+                            'original_name' => $file->getClientOriginalName(),
+                            'mime_type' => $file->getMimeType(),
+                            'size' => $file->getSize(),
+                        ];
+                    }
+
+                    // Dispatch background job for document upload (non-blocking!)
+                    // Use the project ID that was generated in mount()
+                    \App\Jobs\UploadProjectDocuments::dispatch(
+                        $this->getId(),
+                        $this->chromaProjectId,
+                        $this->name,
+                        $storedFiles
+                    );
+
+                    logger()->info('Document upload job dispatched', [
+                        'project_id' => $this->chromaProjectId,
+                        'file_count' => count($storedFiles)
+                    ]);
+                }
 
                 // Step 3: UI will trigger async task generation on mount
                 // No blocking call here - prevents 504 timeout
@@ -514,66 +557,10 @@ class CreateProjectWizard extends Component
     }
 
     /**
-     * Upload documents to ChromaDB for RAG-based task generation
+     * NOTE: This method is no longer used.
+     * Document upload is now handled by UploadProjectDocuments background job.
+     * See: app/Jobs/UploadProjectDocuments.php
      */
-    private function uploadDocumentsToChromaDB()
-    {
-        try {
-            Log::info('Uploading documents to ChromaDB', [
-                'component_id' => $this->getId(),
-                'document_count' => count($this->referenceDocuments)
-            ]);
-
-            $this->streamingMessage = 'Uploading project documents to knowledge base...';
-            $this->currentStreamingStep = 2;
-            $this->streamingProgress = 15;
-
-            // Generate temporary project ID for ChromaDB (same format as task generation)
-            $tempProjectId = 'temp_' . \Illuminate\Support\Str::uuid();
-
-            // Upload documents to Python service
-            $result = $this->aiService->uploadDocuments($tempProjectId, $this->referenceDocuments);
-
-            if ($result) {
-                Log::info('Documents uploaded to ChromaDB successfully', [
-                    'project_id' => $tempProjectId,
-                    'result' => $result
-                ]);
-
-                // Check for partial success (some files failed)
-                if (isset($result['partial_success']) && $result['partial_success']) {
-                    $failedCount = count($result['failed_files'] ?? []);
-                    $this->dispatch('show-toast', [
-                        'type' => 'warning',
-                        'message' => "Documents uploaded with {$failedCount} file(s) skipped due to parsing errors."
-                    ]);
-                } else {
-                    $this->dispatch('show-toast', [
-                        'type' => 'success',
-                        'message' => 'Project documents uploaded successfully. Tasks will be generated based on document content.'
-                    ]);
-                }
-            } else {
-                Log::warning('Document upload failed or was skipped');
-                $this->dispatch('show-toast', [
-                    'type' => 'warning',
-                    'message' => 'Document upload failed. Tasks will be generated without document context.'
-                ]);
-            }
-
-        } catch (\Exception $e) {
-            Log::error('Error uploading documents to ChromaDB', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            // Don't fail the entire wizard - just log and continue
-            $this->dispatch('show-toast', [
-                'type' => 'warning',
-                'message' => 'Document upload encountered an error. Continuing with task generation.'
-            ]);
-        }
-    }
 
     /**
      * Check generation status - called by wire:poll
@@ -595,17 +582,38 @@ class CreateProjectWizard extends Component
                 $this->analyzeProject();
             }
 
-            // Upload documents to ChromaDB before task generation
-            if (!empty($this->referenceDocuments)) {
-                $this->uploadDocumentsToChromaDB();
-                // Move to step 3 after document upload (step 2 is documents)
-                $this->currentStreamingStep = 3;
-                $this->streamingProgress = 25;
-            } else {
-                // No documents, move straight to step 2 (task generation)
+            // Check if document upload job is still running
+            $docUploadKey = "document_upload_{$this->getId()}";
+            if ($this->chromaProjectId && !cache()->has($docUploadKey)) {
+                // Document upload job hasn't completed yet - show waiting message
+                logger()->info('Waiting for document upload job to complete');
+                $this->streamingMessage = 'Uploading project documents to knowledge base...';
                 $this->currentStreamingStep = 2;
                 $this->streamingProgress = 15;
+                return; // Wait for next poll
             }
+
+            // Check if document upload failed or succeeded
+            if ($this->chromaProjectId && cache()->has($docUploadKey)) {
+                $uploadResult = cache()->get($docUploadKey);
+
+                if ($uploadResult['status'] === 'failed') {
+                    logger()->warning('Document upload failed, continuing without docs', [
+                        'error' => $uploadResult['error'] ?? 'Unknown error'
+                    ]);
+                } else {
+                    logger()->info('Document upload completed successfully', [
+                        'document_count' => $uploadResult['document_count'] ?? 0
+                    ]);
+                }
+
+                // Clear the upload status - don't need it anymore
+                cache()->forget($docUploadKey);
+            }
+
+            // Set initial streaming step
+            $this->currentStreamingStep = 1;
+            $this->streamingProgress = 10;
 
             // Prepare context for job
             $context = [
@@ -620,13 +628,27 @@ class CreateProjectWizard extends Component
             ];
 
             // Dispatch background job (returns immediately!)
+            Log::info('Dispatching GenerateProjectTasks background job', [
+                'project_id' => $this->chromaProjectId,
+                'component_id' => $this->getId(),
+                'has_ai_analysis' => !empty($this->aiAnalysis),
+                'context' => $context
+            ]);
+
             \App\Jobs\GenerateProjectTasks::dispatch(
                 $this->getId(),
                 $context,
-                $this->aiAnalysis
+                $this->aiAnalysis,
+                $this->chromaProjectId // Pass project ID for ChromaDB doc retrieval
             );
 
             $this->streamingMessage = 'Starting AI task generation...';
+
+            if ($this->chromaProjectId) {
+                Log::info('Task generation will use ChromaDB documents', [
+                    'project_id' => $this->chromaProjectId
+                ]);
+            }
         }
 
         // Check for RESULTS from background job
@@ -733,7 +755,15 @@ class CreateProjectWizard extends Component
             $this->streamingProgress = 40;
             $this->currentStreamingStep = 2;
 
-            $tempProjectId = 'temp_' . Str::uuid();
+            // Use stored chromaProjectId if available, otherwise generate temp one
+            $tempProjectId = $this->chromaProjectId ?? ('temp_' . Str::uuid());
+
+            Log::info('Synchronous generateTasks called', [
+                'project_id' => $tempProjectId,
+                'chromaProjectId' => $this->chromaProjectId,
+                'component_id' => $this->getId(),
+                'has_documents' => !empty($this->referenceDocuments)
+            ]);
 
             $context = [
                 'name' => $this->name,

@@ -1,8 +1,9 @@
-// Hybrid pattern: Import for Vite plugin, then override with window.React
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+// Use window.React ONLY (shared instance from vendor-react.js)
+// CRITICAL: DO NOT import React directly - this would bundle React into the chunk!
+const SharedReact = window.React;
 
-// Override with window.React (the shared instance from vendor-react.js)
-const SharedReact = window.React || React;
+// Extract hooks from SharedReact
+const { useState, useMemo, useCallback, useEffect } = SharedReact;
 
 // Verify React is available
 if (!SharedReact) {
@@ -150,7 +151,7 @@ const FlowchartContainerInner = ({
 
         setNodes(enhancedNodes);
         setEdges(layout.initialEdges);
-    }, [tasks, layoutDirection, setNodes, setEdges, handleSubtaskClick]);
+    }, [tasks, layoutDirection, handleSubtaskClick]);
 
     // Handle node click
     const onNodeClick = useCallback((event, node) => {

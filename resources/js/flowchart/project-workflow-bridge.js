@@ -7,7 +7,7 @@
  * Unlike the create wizard bridge, this is read-only and doesn't save state changes.
  */
 
-import { createRoot } from 'react-dom/client';
+// CRITICAL: DO NOT import from react-dom - use window globals only!
 import ProjectWorkflow from '../react/components/ProjectWorkflow';
 
 // Use shared React instance
@@ -77,9 +77,9 @@ export function projectWorkflowBridge() {
                 // Load ReactFlowProvider
                 const Provider = await loadReactFlowProvider();
 
-                // Create root only once
+                // Create root only once (use SharedReactDOM.createRoot from window.ReactDOM)
                 if (!this.reactRoot) {
-                    this.reactRoot = createRoot(container);
+                    this.reactRoot = SharedReactDOM.createRoot(container);
                 }
 
                 // Render the component wrapped in ReactFlowProvider

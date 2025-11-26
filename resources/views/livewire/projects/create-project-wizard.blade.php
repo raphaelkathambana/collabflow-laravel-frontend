@@ -657,7 +657,10 @@
                                 </div>
 
                                 {{-- Step 2: Uploading project documents (conditionally shown) --}}
-                                @if(!empty($referenceDocuments))
+                                @php
+                                    $showDocumentUpload = !empty($referenceDocuments);
+                                @endphp
+                                @if($showDocumentUpload)
                                 <div class="flex items-center gap-3 rounded-lg border p-4 transition-all duration-300"
                                     :class="{
                                         'border-tea-green': currentStep > 2,
@@ -684,51 +687,57 @@
                                 @endif
 
                                 {{-- Step 3 (was 2): Generating task breakdown --}}
+                                @php
+                                    $taskBreakdownStep = !empty($referenceDocuments) ? 3 : 2;
+                                @endphp
                                 <div class="flex items-center gap-3 rounded-lg border p-4 transition-all duration-300"
                                     :class="{
-                                        'border-tea-green': currentStep > @if(!empty($referenceDocuments)) 3 @else 2 @endif,
-                                        'border-glaucous': currentStep === @if(!empty($referenceDocuments)) 3 @else 2 @endif,
-                                        'border-background-300': currentStep < @if(!empty($referenceDocuments)) 3 @else 2 @endif
+                                        'border-tea-green': currentStep > {{ $taskBreakdownStep }},
+                                        'border-glaucous': currentStep === {{ $taskBreakdownStep }},
+                                        'border-background-300': currentStep < {{ $taskBreakdownStep }}
                                     }"
-                                    :style="currentStep > @if(!empty($referenceDocuments)) 3 @else 2 @endif ? 'background-color: rgba(var(--color-tea-green-rgb, 96, 165, 137), 0.1); border-color: var(--color-tea-green);' :
-                                            currentStep === @if(!empty($referenceDocuments)) 3 @else 2 @endif ? 'background-color: var(--color-accent-50); border-color: var(--color-glaucous);' :
+                                    :style="currentStep > {{ $taskBreakdownStep }} ? 'background-color: rgba(var(--color-tea-green-rgb, 96, 165, 137), 0.1); border-color: var(--color-tea-green);' :
+                                            currentStep === {{ $taskBreakdownStep }} ? 'background-color: var(--color-accent-50); border-color: var(--color-glaucous);' :
                                             'background-color: var(--color-background-50); border-color: var(--color-background-300);'">
-                                    <svg x-show="currentStep > @if(!empty($referenceDocuments)) 3 @else 2 @endif" class="w-5 h-5 flex-shrink-0" style="color: var(--color-tea-green);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg x-show="currentStep > {{ $taskBreakdownStep }}" class="w-5 h-5 flex-shrink-0" style="color: var(--color-tea-green);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                                     </svg>
-                                    <svg x-show="currentStep === @if(!empty($referenceDocuments)) 3 @else 2 @endif" class="w-5 h-5 flex-shrink-0 animate-spin" style="color: var(--color-glaucous);" fill="none" viewBox="0 0 24 24">
+                                    <svg x-show="currentStep === {{ $taskBreakdownStep }}" class="w-5 h-5 flex-shrink-0 animate-spin" style="color: var(--color-glaucous);" fill="none" viewBox="0 0 24 24">
                                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                     </svg>
-                                    <svg x-show="currentStep < @if(!empty($referenceDocuments)) 3 @else 2 @endif" class="w-5 h-5 flex-shrink-0" style="color: var(--color-text-400);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg x-show="currentStep < {{ $taskBreakdownStep }}" class="w-5 h-5 flex-shrink-0" style="color: var(--color-text-400);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <circle cx="12" cy="12" r="10" stroke-width="2"></circle>
                                     </svg>
-                                    <span class="text-sm font-medium" :style="currentStep >= @if(!empty($referenceDocuments)) 3 @else 2 @endif ? 'color: var(--color-text-900);' : 'color: var(--color-text-500);'">
+                                    <span class="text-sm font-medium" :style="currentStep >= {{ $taskBreakdownStep }} ? 'color: var(--color-text-900);' : 'color: var(--color-text-500);'">
                                         Generating task breakdown
                                     </span>
                                 </div>
 
                                 {{-- Step 4 (was 3): Estimating effort --}}
+                                @php
+                                    $estimatingEffortStep = !empty($referenceDocuments) ? 4 : 3;
+                                @endphp
                                 <div class="flex items-center gap-3 rounded-lg border p-4 transition-all duration-300"
                                     :class="{
-                                        'border-tea-green': currentStep > @if(!empty($referenceDocuments)) 4 @else 3 @endif,
-                                        'border-glaucous': currentStep === @if(!empty($referenceDocuments)) 4 @else 3 @endif,
-                                        'border-background-300': currentStep < @if(!empty($referenceDocuments)) 4 @else 3 @endif
+                                        'border-tea-green': currentStep > {{ $estimatingEffortStep }},
+                                        'border-glaucous': currentStep === {{ $estimatingEffortStep }},
+                                        'border-background-300': currentStep < {{ $estimatingEffortStep }}
                                     }"
-                                    :style="currentStep > @if(!empty($referenceDocuments)) 4 @else 3 @endif ? 'background-color: rgba(var(--color-tea-green-rgb, 96, 165, 137), 0.1); border-color: var(--color-tea-green);' :
-                                            currentStep === @if(!empty($referenceDocuments)) 4 @else 3 @endif ? 'background-color: var(--color-accent-50); border-color: var(--color-glaucous);' :
+                                    :style="currentStep > {{ $estimatingEffortStep }} ? 'background-color: rgba(var(--color-tea-green-rgb, 96, 165, 137), 0.1); border-color: var(--color-tea-green);' :
+                                            currentStep === {{ $estimatingEffortStep }} ? 'background-color: var(--color-accent-50); border-color: var(--color-glaucous);' :
                                             'background-color: var(--color-background-50); border-color: var(--color-background-300);'">
-                                    <svg x-show="currentStep > @if(!empty($referenceDocuments)) 4 @else 3 @endif" class="w-5 h-5 flex-shrink-0" style="color: var(--color-tea-green);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg x-show="currentStep > {{ $estimatingEffortStep }}" class="w-5 h-5 flex-shrink-0" style="color: var(--color-tea-green);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                                     </svg>
-                                    <svg x-show="currentStep === @if(!empty($referenceDocuments)) 4 @else 3 @endif" class="w-5 h-5 flex-shrink-0 animate-spin" style="color: var(--color-glaucous);" fill="none" viewBox="0 0 24 24">
+                                    <svg x-show="currentStep === {{ $estimatingEffortStep }}" class="w-5 h-5 flex-shrink-0 animate-spin" style="color: var(--color-glaucous);" fill="none" viewBox="0 0 24 24">
                                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                     </svg>
-                                    <svg x-show="currentStep < @if(!empty($referenceDocuments)) 4 @else 3 @endif" class="w-5 h-5 flex-shrink-0" style="color: var(--color-text-400);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg x-show="currentStep < {{ $estimatingEffortStep }}" class="w-5 h-5 flex-shrink-0" style="color: var(--color-text-400);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <circle cx="12" cy="12" r="10" stroke-width="2"></circle>
                                     </svg>
-                                    <span class="text-sm font-medium" :style="currentStep >= @if(!empty($referenceDocuments)) 4 @else 3 @endif ? 'color: var(--color-text-900);' : 'color: var(--color-text-500);'">
+                                    <span class="text-sm font-medium" :style="currentStep >= {{ $estimatingEffortStep }} ? 'color: var(--color-text-900);' : 'color: var(--color-text-500);'">
                                         Estimating effort
                                     </span>
                                 </div>

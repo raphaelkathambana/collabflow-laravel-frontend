@@ -19,10 +19,13 @@ import ReactDOM from 'react-dom/client';
 window.React = React;
 window.ReactDOM = ReactDOM;
 
+// CRITICAL: Also expose createRoot directly for easier access
+window.ReactDOMClient = ReactDOM;
+
 // Log successful load
 console.log('✅ React vendor bundle loaded');
 console.log('   React version:', React.version);
-console.log('   Available as: window.React, window.ReactDOM');
+console.log('   Available as: window.React, window.ReactDOM, window.ReactDOMClient');
 console.log('   Architecture: Islands Pattern (Single React Instance)');
 
 // Verify exports are accessible

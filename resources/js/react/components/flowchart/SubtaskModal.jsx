@@ -1,5 +1,5 @@
-// Hybrid pattern: Import for Vite plugin, then override with window.React
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+// Use window.React ONLY (shared instance from vendor-react.js)
+// CRITICAL: DO NOT import React directly - this would bundle React into the chunk!
 import {
     ReactFlow,
     Controls,
@@ -11,8 +11,8 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-// Override with window.React (the shared instance from vendor-react.js)
-const SharedReact = window.React || React;
+const SharedReact = window.React;
+const { useState, useCallback, useMemo, useEffect } = SharedReact;
 
 // Verify React is available
 if (!SharedReact) {
