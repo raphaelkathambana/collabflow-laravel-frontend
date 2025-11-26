@@ -582,9 +582,9 @@ class CreateProjectWizard extends Component
                 $this->analyzeProject();
             }
 
-            // Check if document upload job is still running
+            // Check if document upload job is still running (only if documents were uploaded)
             $docUploadKey = "document_upload_{$this->getId()}";
-            if ($this->chromaProjectId && !cache()->has($docUploadKey)) {
+            if (!empty($this->referenceDocuments) && $this->chromaProjectId && !cache()->has($docUploadKey)) {
                 // Document upload job hasn't completed yet - show waiting message
                 logger()->info('Waiting for document upload job to complete');
                 $this->streamingMessage = 'Uploading project documents to knowledge base...';
