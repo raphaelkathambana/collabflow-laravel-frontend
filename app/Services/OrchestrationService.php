@@ -87,12 +87,20 @@ class OrchestrationService
                     'user_id' => $project->user_id,
                     'trigger_source' => 'laravel_automatic',
                     'attempt' => $attempt,
-                    // URLs for n8n to fetch data
-                    'ready_tasks_url' => url("/api/projects/{$project->id}/ready-tasks"),
+                    // Send full task data (tasks already marked in_progress)
+                    'tasks' => $readyTasks->map(function($task) {
+                        return [
+                            'id' => $task->id,
+                            'name' => $task->name,
+                            'description' => $task->description,
+                            'type' => $task->type,
+                            'status' => 'in_progress',
+                            'estimated_hours' => $task->estimated_hours,
+                            'dependencies' => $task->metadata['dependencies'] ?? [],
+                            'metadata' => $task->metadata,
+                        ];
+                    })->values()->toArray(),
                     'callback_url' => url('/api/orchestration/batch-callback'),
-                    // Task metadata for logging
-                    'ready_task_count' => $readyTasks->count(),
-                    'ready_task_ids' => $taskIds,
                 ]);
 
             if ($response->successful()) {
