@@ -11,13 +11,10 @@
  * - Re-render React when Livewire state changes
  */
 
-// Hybrid pattern: Import for Vite plugin, then override with window versions
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-
-// Override with window versions (shared instances from vendor-react.js)
-const SharedReact = window.React || React;
-const SharedReactDOM = window.ReactDOM || ReactDOM;
+// Use window versions ONLY (shared instances from vendor-react.js)
+// CRITICAL: DO NOT import React/ReactDOM directly - this would create a second React instance!
+const SharedReact = window.React;
+const SharedReactDOM = window.ReactDOM;
 
 // Verify React is available
 if (!SharedReact || !SharedReactDOM) {
@@ -112,6 +109,13 @@ export function createFlowchartBridge() {
                     this.mountReact();
                 }
             });
+
+            // CRITICAL: Cleanup when Alpine component is destroyed
+            // This handles Livewire navigation away from the wizard
+            this.$el.addEventListener('destroyed', () => {
+                console.log('🧹 Alpine component destroyed, cleaning up React...');
+                this.destroy();
+            });
         },
 
         /**
@@ -123,6 +127,12 @@ export function createFlowchartBridge() {
 
             if (!container) {
                 console.error('Flowchart container ref not found');
+                return;
+            }
+
+            // CRITICAL: Check if container is still connected to DOM
+            if (!container.isConnected) {
+                console.warn('Flowchart container disconnected, aborting mount');
                 return;
             }
 
@@ -276,25 +286,36 @@ export function createFlowchartBridge() {
          * Cleanup when component is destroyed
          */
         destroy() {
+            // CRITICAL FIX: Cancel any pending operations FIRST
+            if (this.saveTimeout) {
+                clearTimeout(this.saveTimeout);
+                this.saveTimeout = null;
+            }
+
+            // Mark as not mounted BEFORE unmounting to prevent race conditions
+            this.mounted = false;
+            this.loading = false;
+
             try {
                 if (this.reactRoot) {
-                    // Check if the container still exists before unmounting
-                    const container = this.$refs.flowchartContainer;
-                    if (container && container.isConnected) {
-                        this.reactRoot.unmount();
-                    }
-                    this.reactRoot = null;
+                    // Use setTimeout to defer unmount - prevents React error #185
+                    // (state updates during unmount)
+                    setTimeout(() => {
+                        try {
+                            // Double-check the root still exists
+                            if (this.reactRoot) {
+                                this.reactRoot.unmount();
+                                this.reactRoot = null;
+                            }
+                        } catch (unmountError) {
+                            console.warn('React unmount deferred cleanup:', unmountError.message);
+                        }
+                    }, 0);
                 }
             } catch (error) {
                 console.warn('React unmount error (non-critical):', error.message);
                 // This is expected if the DOM was already cleaned up
             }
-
-            if (this.saveTimeout) {
-                clearTimeout(this.saveTimeout);
-                this.saveTimeout = null;
-            }
-            this.mounted = false;
         }
     };
 }
