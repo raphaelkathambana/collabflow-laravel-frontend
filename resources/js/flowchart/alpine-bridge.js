@@ -151,7 +151,7 @@ export function createFlowchartBridge() {
             // Load the flowchart component dynamically (code-split)
             this.loading = true;
             try {
-                const { FlowchartContainer: FlowchartComponent, ReactFlowProvider: Provider } = await loadFlowchartComponent();
+                const { FlowchartContainer: FlowchartComponent } = await loadFlowchartComponent();
 
                 // Get tasks from Alpine data (passed from Livewire)
                 const rawTasks = this.tasks || [];
@@ -183,14 +183,10 @@ export function createFlowchartBridge() {
                 }
 
                 // Only render if we have a valid root
-                // IMPORTANT: Wrap FlowchartContainer in ReactFlowProvider to avoid zustand error
+                // FlowchartContainer already wraps itself in ReactFlowProvider - don't wrap again!
                 if (this.reactRoot) {
                     this.reactRoot.render(
-                        SharedReact.createElement(
-                            Provider,
-                            null,
-                            SharedReact.createElement(FlowchartComponent, props)
-                        )
+                        SharedReact.createElement(FlowchartComponent, props)
                     );
                     this.mounted = true;
                 }
