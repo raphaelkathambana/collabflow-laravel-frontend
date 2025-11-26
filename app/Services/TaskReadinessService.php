@@ -85,23 +85,10 @@ class TaskReadinessService
         $hitlTasks = $readyTasks->where('type', 'hitl')->take(1);
 
         // Merge and preserve order by sequence
-        $selectedTasks = $aiTasks
+        // HITL tasks already have checkpoint info in their metadata
+        return $aiTasks
             ->merge($humanTasks)
             ->merge($hitlTasks)
             ->sortBy('sequence');
-
-        // Enhance HITL tasks with checkpoint info
-        return $selectedTasks->map(function ($task) {
-            if ($task->type === 'hitl') {
-                $metadata = $task->metadata ?? [];
-                $subtasks = $metadata['subtasks'] ?? [];
-
-                $task->checkpoint_subtasks = $subtasks;
-                $task->total_checkpoints = collect($subtasks)
-                    ->where('is_checkpoint', true)
-                    ->count();
-            }
-            return $task;
-        });
     }
 }
