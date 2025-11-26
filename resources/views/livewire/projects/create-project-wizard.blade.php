@@ -583,8 +583,12 @@
                         {{-- Streaming Animation --}}
                         <div class="flex flex-col items-center justify-center py-12 space-y-8"
                             x-data="{
-                                currentStep: @entangle('currentStreamingStep'),
+                                currentStep: @entangle('currentStreamingStep').live,
                                 init() {
+                                    // Initialize to 1 if undefined
+                                    if (this.currentStep === undefined || this.currentStep === null) {
+                                        this.currentStep = 1;
+                                    }
                                     // No fake timer - let the backend control progress via wire:poll
                                     console.log('Loading animation started, currentStreamingStep:', this.currentStep);
 
